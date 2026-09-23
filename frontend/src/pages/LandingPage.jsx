@@ -118,15 +118,10 @@ export default function LandingPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {currentUser ? (
-            <>
-              <Link to="/dashboard" className="btn-outline btn-sm">
-                Dashboard
-              </Link>
-              <button onClick={handleCreateQuizClick} className="btn-primary btn-sm">
-                <Sparkles size={14} />
-                <span>Create Quiz</span>
-              </button>
-            </>
+            <button onClick={handleCreateQuizClick} className="btn-primary btn-sm">
+              <Sparkles size={14} />
+              <span>Create Quiz</span>
+            </button>
           ) : (
             <>
               <Link to="/login" className="btn-outline btn-sm">

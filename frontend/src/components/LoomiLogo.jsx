@@ -148,16 +148,7 @@ export default function LoomiLogo({
     </div>
   );
 
-  let destination = to;
-  if (to === '/') {
-    try {
-      const user = localStorage.getItem('user');
-      const token = localStorage.getItem('token') || localStorage.getItem('loomi_auth_token');
-      if (user && token) {
-        destination = '/dashboard';
-      }
-    } catch (e) {}
-  }
+  const destination = to;
 
   if (clickable && destination) {
     return (
