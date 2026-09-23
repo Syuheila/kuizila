@@ -364,11 +364,13 @@ export default function LiveParticipant() {
             </span>
 
             <Timer
+              key={currentQ.question_id || currentQ.question_index}
               duration={currentQ.time_limit || 30}
               endsAt={questionEndsAt}
               remainingSeconds={currentQ.remaining_seconds}
               serverTime={currentQ.server_time}
               onTimeUp={handleTimeUp}
+              isPaused={hasSubmitted}
             />
           </div>
 
