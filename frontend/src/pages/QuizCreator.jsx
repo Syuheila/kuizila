@@ -115,14 +115,17 @@ export default function QuizCreator() {
     { id: 'opt_3', text: '', is_correct: false },
     { id: 'opt_4', text: '', is_correct: false }
   ]);
+  const [newShortAnswer, setNewShortAnswer] = useState('');
   const [newExplanation, setNewExplanation] = useState('');
   const [newDifficulty, setNewDifficulty] = useState('medium');
 
   // ---------------- EDIT EXISTING QUESTION STATE ----------------
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [editQuestionType, setEditQuestionType] = useState('multiple_choice');
   const [editText, setEditText] = useState('');
   const [editOptions, setEditOptions] = useState([]);
+  const [editShortAnswer, setEditShortAnswer] = useState('');
   const [editExplanation, setEditExplanation] = useState('');
   const [editDifficulty, setEditDifficulty] = useState('medium');
   const [editTimeLimit, setEditTimeLimit] = useState(30);
@@ -517,6 +520,86 @@ export default function QuizCreator() {
     setSelectedQuestions(selectedQuestions.filter((_, i) => i !== index));
   };
 
+  // ---------------- QUESTION TYPE HANDLERS & HELPERS ----------------
+  const handleNewQuestionTypeChange = (type) => {
+    setNewQuestionType(type);
+    if (type === 'true_false') {
+      setNewOptions([
+        { id: 'opt_true', text: 'True', is_correct: true },
+        { id: 'opt_false', text: 'False', is_correct: false }
+      ]);
+    } else if (type === 'multiple_choice' || type === 'multiple_select') {
+      if (newOptions.length < 2) {
+        setNewOptions([
+          { id: 'opt_1', text: '', is_correct: true },
+          { id: 'opt_2', text: '', is_correct: false },
+          { id: 'opt_3', text: '', is_correct: false },
+          { id: 'opt_4', text: '', is_correct: false }
+        ]);
+      }
+    } else if (type === 'short_answer') {
+      setNewOptions([]);
+      setNewShortAnswer('');
+    }
+  };
+
+  const handleEditQuestionTypeChange = (type) => {
+    setEditQuestionType(type);
+    if (type === 'true_false') {
+      setEditOptions([
+        { id: 'opt_true', text: 'True', is_correct: true },
+        { id: 'opt_false', text: 'False', is_correct: false }
+      ]);
+    } else if (type === 'multiple_choice' || type === 'multiple_select') {
+      if (editOptions.length < 2) {
+        setEditOptions([
+          { id: 'opt_1', text: '', is_correct: true },
+          { id: 'opt_2', text: '', is_correct: false },
+          { id: 'opt_3', text: '', is_correct: false },
+          { id: 'opt_4', text: '', is_correct: false }
+        ]);
+      }
+    } else if (type === 'short_answer') {
+      setEditOptions([]);
+    }
+  };
+
+  const handleAddOption = (isEdit = false) => {
+    if (isEdit) {
+      if (editOptions.length >= 6) return;
+      const nextId = `opt_${editOptions.length + 1}`;
+      setEditOptions([...editOptions, { id: nextId, text: '', is_correct: false }]);
+    } else {
+      if (newOptions.length >= 6) return;
+      const nextId = `opt_${newOptions.length + 1}`;
+      setNewOptions([...newOptions, { id: nextId, text: '', is_correct: false }]);
+    }
+  };
+
+  const handleRemoveOption = (idx, isEdit = false) => {
+    if (isEdit) {
+      if (editOptions.length <= 2) {
+        alert('Multiple choice questions require at least 2 options.');
+        return;
+      }
+      const updated = editOptions.filter((_, i) => i !== idx);
+      if (!updated.some((o) => o.is_correct) && updated.length > 0) {
+        updated[0].is_correct = true;
+      }
+      setEditOptions(updated);
+    } else {
+      if (newOptions.length <= 2) {
+        alert('Multiple choice questions require at least 2 options.');
+        return;
+      }
+      const updated = newOptions.filter((_, i) => i !== idx);
+      if (!updated.some((o) => o.is_correct) && updated.length > 0) {
+        updated[0].is_correct = true;
+      }
+      setNewOptions(updated);
+    }
+  };
+
   // ---------------- MANUAL INLINE QUESTION CREATION (Option 1) ----------------
   const handleCreateInlineQuestion = async () => {
     if (!newQuestionText.trim()) {
@@ -524,29 +607,72 @@ export default function QuizCreator() {
       return;
     }
 
-    if (newOptions.length < 4) {
-      alert('Please provide 4 answer options.');
-      return;
-    }
+    let finalOptions = [...newOptions];
+    let finalCorrectAnswer = '';
 
-    for (let i = 0; i < newOptions.length; i++) {
-      if (!newOptions[i].text || !newOptions[i].text.trim()) {
-        alert(`Option ${String.fromCharCode(65 + i)} cannot be empty.`);
+    if (newQuestionType === 'true_false') {
+      if (finalOptions.length !== 2) {
+        finalOptions = [
+          { id: 'opt_true', text: 'True', is_correct: true },
+          { id: 'opt_false', text: 'False', is_correct: false }
+        ];
+      }
+      const correctOpt = finalOptions.find((o) => o.is_correct);
+      if (!correctOpt) {
+        alert('Please select whether True or False is the correct answer.');
         return;
       }
-    }
-
-    if (!newOptions.some((o) => o.is_correct)) {
-      alert('Please select at least one correct option.');
-      return;
+      finalCorrectAnswer = correctOpt.text;
+    } else if (newQuestionType === 'short_answer') {
+      if (!newShortAnswer.trim()) {
+        alert('Please provide the expected correct answer.');
+        return;
+      }
+      finalCorrectAnswer = newShortAnswer.trim();
+      finalOptions = [];
+    } else if (newQuestionType === 'multiple_select') {
+      if (finalOptions.length < 2) {
+        alert('Please provide at least 2 answer options.');
+        return;
+      }
+      for (let i = 0; i < finalOptions.length; i++) {
+        if (!finalOptions[i].text || !finalOptions[i].text.trim()) {
+          alert(`Option ${String.fromCharCode(65 + i)} cannot be empty.`);
+          return;
+        }
+      }
+      const correctOpts = finalOptions.filter((o) => o.is_correct);
+      if (correctOpts.length === 0) {
+        alert('Please select at least one correct option.');
+        return;
+      }
+      finalCorrectAnswer = correctOpts.map((o) => o.text).join(', ');
+    } else {
+      // multiple_choice
+      if (finalOptions.length < 2) {
+        alert('Please provide at least 2 answer options.');
+        return;
+      }
+      for (let i = 0; i < finalOptions.length; i++) {
+        if (!finalOptions[i].text || !finalOptions[i].text.trim()) {
+          alert(`Option ${String.fromCharCode(65 + i)} cannot be empty.`);
+          return;
+        }
+      }
+      const correctOpt = finalOptions.find((o) => o.is_correct);
+      if (!correctOpt) {
+        alert('Please select the single correct answer.');
+        return;
+      }
+      finalCorrectAnswer = correctOpt.text;
     }
 
     const questionObj = {
       id: `manual_${Date.now()}`,
       question_type: newQuestionType,
       question_text: newQuestionText.trim(),
-      options: newOptions,
-      correct_answer: newOptions.find((o) => o.is_correct)?.text || '',
+      options: finalOptions,
+      correct_answer: finalCorrectAnswer,
       explanation: newExplanation.trim(),
       category: category,
       difficulty: newDifficulty,
@@ -560,6 +686,8 @@ export default function QuizCreator() {
     // Reset inline form
     setNewQuestionText('');
     setNewExplanation('');
+    setNewShortAnswer('');
+    setNewQuestionType('multiple_choice');
     setNewOptions([
       { id: 'opt_1', text: '', is_correct: true },
       { id: 'opt_2', text: '', is_correct: false },
@@ -574,6 +702,8 @@ export default function QuizCreator() {
     if (!q) return;
     setEditingIndex(index);
     setEditText(q.question_text || '');
+    const detectedType = q.question_type || (q.options?.length === 2 && q.options.some((o) => o.text === 'True') ? 'true_false' : 'multiple_choice');
+    setEditQuestionType(detectedType);
     setEditOptions(
       (q.options || []).map((opt, i) => ({
         id: opt.id || `opt_${i + 1}`,
@@ -581,6 +711,7 @@ export default function QuizCreator() {
         is_correct: Boolean(opt.is_correct)
       }))
     );
+    setEditShortAnswer(q.correct_answer || '');
     setEditExplanation(q.explanation || '');
     setEditDifficulty(q.difficulty || 'medium');
     setEditTimeLimit(q.default_time_limit || timeLimit);
@@ -593,29 +724,73 @@ export default function QuizCreator() {
       return;
     }
 
-    if (editOptions.length < 4) {
-      alert('Please provide 4 answer options.');
-      return;
-    }
+    let finalOptions = [...editOptions];
+    let finalCorrectAnswer = '';
 
-    for (let i = 0; i < editOptions.length; i++) {
-      if (!editOptions[i].text || !editOptions[i].text.trim()) {
-        alert(`Option ${String.fromCharCode(65 + i)} cannot be empty.`);
+    if (editQuestionType === 'true_false') {
+      if (finalOptions.length !== 2) {
+        finalOptions = [
+          { id: 'opt_true', text: 'True', is_correct: true },
+          { id: 'opt_false', text: 'False', is_correct: false }
+        ];
+      }
+      const correctOpt = finalOptions.find((o) => o.is_correct);
+      if (!correctOpt) {
+        alert('Please select whether True or False is the correct answer.');
         return;
       }
-    }
-
-    if (!editOptions.some((o) => o.is_correct)) {
-      alert('Please select a correct answer.');
-      return;
+      finalCorrectAnswer = correctOpt.text;
+    } else if (editQuestionType === 'short_answer') {
+      if (!editShortAnswer.trim()) {
+        alert('Please provide the expected correct answer.');
+        return;
+      }
+      finalCorrectAnswer = editShortAnswer.trim();
+      finalOptions = [];
+    } else if (editQuestionType === 'multiple_select') {
+      if (finalOptions.length < 2) {
+        alert('Please provide at least 2 answer options.');
+        return;
+      }
+      for (let i = 0; i < finalOptions.length; i++) {
+        if (!finalOptions[i].text || !finalOptions[i].text.trim()) {
+          alert(`Option ${String.fromCharCode(65 + i)} cannot be empty.`);
+          return;
+        }
+      }
+      const correctOpts = finalOptions.filter((o) => o.is_correct);
+      if (correctOpts.length === 0) {
+        alert('Please select at least one correct option.');
+        return;
+      }
+      finalCorrectAnswer = correctOpts.map((o) => o.text).join(', ');
+    } else {
+      // multiple_choice
+      if (finalOptions.length < 2) {
+        alert('Please provide at least 2 answer options.');
+        return;
+      }
+      for (let i = 0; i < finalOptions.length; i++) {
+        if (!finalOptions[i].text || !finalOptions[i].text.trim()) {
+          alert(`Option ${String.fromCharCode(65 + i)} cannot be empty.`);
+          return;
+        }
+      }
+      const correctOpt = finalOptions.find((o) => o.is_correct);
+      if (!correctOpt) {
+        alert('Please select the single correct answer.');
+        return;
+      }
+      finalCorrectAnswer = correctOpt.text;
     }
 
     const copy = [...selectedQuestions];
     copy[editingIndex] = {
       ...copy[editingIndex],
+      question_type: editQuestionType,
       question_text: editText.trim(),
-      options: editOptions,
-      correct_answer: editOptions.find((o) => o.is_correct)?.text || '',
+      options: finalOptions,
+      correct_answer: finalCorrectAnswer,
       explanation: editExplanation.trim(),
       difficulty: editDifficulty,
       default_time_limit: parseInt(editTimeLimit, 10)
@@ -1576,24 +1751,65 @@ export default function QuizCreator() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 12
+                gap: 14
               }}>
                 <PlusCircle size={36} color="var(--color-teal)" />
                 <div>
                   <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#F8FAFC' }}>Manual Question Creation</h4>
-                  <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: 400, marginTop: 4 }}>
-                    Define customized question prompts, multiple-choice options, correct answers, and explanations.
+                  <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: 440, marginTop: 4 }}>
+                    Choose your preferred format to craft tailored assessment questions manually.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setInlineModalOpen(true)}
-                  className="btn btn-teal btn-sm"
-                  style={{ padding: '8px 18px' }}
-                >
-                  <PlusCircle size={16} />
-                  <span>Open Manual Question Editor</span>
-                </button>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('multiple_choice');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-teal btn-sm"
+                    style={{ padding: '8px 16px' }}
+                  >
+                    <PlusCircle size={15} />
+                    <span>+ Multiple Choice (MCQ)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('true_false');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '8px 16px', borderColor: 'var(--color-teal)', color: '#2DD4BF' }}
+                  >
+                    <CheckCircle2 size={15} />
+                    <span>+ True / False</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('multiple_select');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '8px 16px' }}
+                  >
+                    <CheckSquare size={15} />
+                    <span>+ Multiple Select</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('short_answer');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '8px 16px' }}
+                  >
+                    <FileQuestion size={15} />
+                    <span>+ Short Answer</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1705,7 +1921,9 @@ export default function QuizCreator() {
                             {q.question_text}
                           </div>
                           <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                            <span className="badge badge-teal" style={{ fontSize: '0.68rem' }}>Multiple Choice</span>
+                            <span className="badge badge-teal" style={{ fontSize: '0.68rem' }}>
+                              {q.question_type === 'true_false' ? 'True / False' : q.question_type === 'multiple_select' ? 'Multiple Select' : q.question_type === 'short_answer' ? 'Short Answer' : 'Multiple Choice'}
+                            </span>
                             <span className="badge badge-gray" style={{ fontSize: '0.68rem' }}>{q.difficulty || 'medium'}</span>
                             <span className="badge badge-gold" style={{ fontSize: '0.68rem' }}>{q.default_time_limit || timeLimit}s</span>
                           </div>
@@ -1777,37 +1995,44 @@ export default function QuizCreator() {
                     </div>
 
                     {/* Question Options Preview */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                      gap: 8,
-                      backgroundColor: '#161F30',
-                      padding: 10,
-                      borderRadius: 8
-                    }}>
-                      {(q.options || []).map((opt, optIdx) => (
-                        <div
-                          key={opt.id || optIdx}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            padding: '6px 10px',
-                            borderRadius: 6,
-                            backgroundColor: opt.is_correct ? 'rgba(16, 185, 129, 0.15)' : '#0F172A',
-                            border: `1px solid ${opt.is_correct ? '#10B981' : '#334155'}`,
-                            fontSize: '0.8rem',
-                            color: opt.is_correct ? '#34D399' : '#CBD5E1'
-                          }}
-                        >
-                          <span style={{ fontWeight: 700, fontSize: '0.75rem', minWidth: 16 }}>
-                            {String.fromCharCode(65 + optIdx)}.
-                          </span>
-                          <span style={{ flex: 1 }}>{opt.text}</span>
-                          {opt.is_correct && <CheckCircle2 size={14} color="#10B981" />}
-                        </div>
-                      ))}
-                    </div>
+                    {q.question_type === 'short_answer' ? (
+                      <div style={{ backgroundColor: '#161F30', padding: '10px 14px', borderRadius: 8, fontSize: '0.82rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <CheckCircle2 size={15} color="#10B981" />
+                        <span><strong>Expected Answer:</strong> {q.correct_answer}</span>
+                      </div>
+                    ) : (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: 8,
+                        backgroundColor: '#161F30',
+                        padding: 10,
+                        borderRadius: 8
+                      }}>
+                        {(q.options || []).map((opt, optIdx) => (
+                          <div
+                            key={opt.id || optIdx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              padding: '6px 10px',
+                              borderRadius: 6,
+                              backgroundColor: opt.is_correct ? 'rgba(16, 185, 129, 0.15)' : '#0F172A',
+                              border: `1px solid ${opt.is_correct ? '#10B981' : '#334155'}`,
+                              fontSize: '0.8rem',
+                              color: opt.is_correct ? '#34D399' : '#CBD5E1'
+                            }}
+                          >
+                            <span style={{ fontWeight: 700, fontSize: '0.75rem', minWidth: 16 }}>
+                              {q.question_type === 'true_false' ? (opt.text === 'True' ? '✓' : '✗') : `${String.fromCharCode(65 + optIdx)}.`}
+                            </span>
+                            <span style={{ flex: 1 }}>{opt.text}</span>
+                            {opt.is_correct && <CheckCircle2 size={14} color="#10B981" />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Explanation if available */}
                     {q.explanation && (
@@ -2267,62 +2492,28 @@ export default function QuizCreator() {
       <Modal
         isOpen={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        title="Edit Question & Answer Options"
+        title={`Edit ${editQuestionType === 'true_false' ? 'True / False' : editQuestionType === 'multiple_select' ? 'Multiple-Select' : editQuestionType === 'short_answer' ? 'Short-Answer' : 'Multiple-Choice'} Question`}
         maxWidth={680}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
-              Question Text *
-            </label>
-            <textarea
-              rows={3}
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: '#F8FAFC' }}>
-              Answer Options (Select the correct answer)
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {editOptions.map((opt, idx) => (
-                <div key={opt.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <input
-                    type="radio"
-                    name="edit_correct_option"
-                    checked={opt.is_correct}
-                    onChange={() => {
-                      const updated = editOptions.map((o, i) => ({
-                        ...o,
-                        is_correct: i === idx
-                      }));
-                      setEditOptions(updated);
-                    }}
-                    style={{ width: 18, height: 18, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontWeight: 700, fontSize: '0.85rem', minWidth: 20, color: '#94A3B8' }}>
-                    {String.fromCharCode(65 + idx)}:
-                  </span>
-                  <input
-                    type="text"
-                    value={opt.text}
-                    onChange={(e) => {
-                      const updated = [...editOptions];
-                      updated[idx].text = e.target.value;
-                      setEditOptions(updated);
-                    }}
-                    placeholder={`Option ${String.fromCharCode(65 + idx)} text`}
-                    style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
+          {/* Format & Difficulty Selectors */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
+                Question Format *
+              </label>
+              <select
+                value={editQuestionType}
+                onChange={(e) => handleEditQuestionTypeChange(e.target.value)}
+                style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+              >
+                <option value="multiple_choice">Multiple Choice (MCQ)</option>
+                <option value="true_false">True / False</option>
+                <option value="multiple_select">Multiple Select (Check all that apply)</option>
+                <option value="short_answer">Short Answer / Direct Recall</option>
+              </select>
+            </div>
+
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
                 Difficulty Level
@@ -2337,7 +2528,182 @@ export default function QuizCreator() {
                 <option value="hard">Hard</option>
               </select>
             </div>
+          </div>
 
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
+              Question Text *
+            </label>
+            <textarea
+              rows={3}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+            />
+          </div>
+
+          {/* DYNAMIC OPTIONS BY FORMAT */}
+          {editQuestionType === 'true_false' ? (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: '#F8FAFC' }}>
+                Correct Answer (Click to select True or False) *
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div
+                  onClick={() => {
+                    setEditOptions([
+                      { id: 'opt_true', text: 'True', is_correct: true },
+                      { id: 'opt_false', text: 'False', is_correct: false }
+                    ]);
+                  }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: 10,
+                    border: `2px solid ${editOptions.find((o) => o.text === 'True')?.is_correct ? '#10B981' : '#334155'}`,
+                    backgroundColor: editOptions.find((o) => o.text === 'True')?.is_correct ? 'rgba(16, 185, 129, 0.15)' : '#0F172A',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34D399' }}>✓</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F8FAFC' }}>True</span>
+                  </div>
+                  {editOptions.find((o) => o.text === 'True')?.is_correct && (
+                    <span className="badge badge-success">Correct Answer</span>
+                  )}
+                </div>
+
+                <div
+                  onClick={() => {
+                    setEditOptions([
+                      { id: 'opt_true', text: 'True', is_correct: false },
+                      { id: 'opt_false', text: 'False', is_correct: true }
+                    ]);
+                  }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: 10,
+                    border: `2px solid ${editOptions.find((o) => o.text === 'False')?.is_correct ? '#EF4444' : '#334155'}`,
+                    backgroundColor: editOptions.find((o) => o.text === 'False')?.is_correct ? 'rgba(239, 68, 68, 0.15)' : '#0F172A',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F87171' }}>✗</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F8FAFC' }}>False</span>
+                  </div>
+                  {editOptions.find((o) => o.text === 'False')?.is_correct && (
+                    <span className="badge badge-error">Correct Answer</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : editQuestionType === 'short_answer' ? (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
+                Expected Answer / Keyword *
+              </label>
+              <input
+                type="text"
+                placeholder="Type the exact expected answer..."
+                value={editShortAnswer}
+                onChange={(e) => setEditShortAnswer(e.target.value)}
+                style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: 4, display: 'block' }}>
+                Participant answers will be compared case-insensitively against this answer.
+              </span>
+            </div>
+          ) : (
+            /* multiple_choice or multiple_select */
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC', margin: 0 }}>
+                  Answer Options ({editQuestionType === 'multiple_select' ? 'Check all correct answers' : 'Select single correct answer'})
+                </label>
+                {editOptions.length < 6 && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddOption(true)}
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+                  >
+                    + Add Option
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {editOptions.map((opt, idx) => (
+                  <div key={opt.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {editQuestionType === 'multiple_select' ? (
+                      <input
+                        type="checkbox"
+                        checked={opt.is_correct}
+                        onChange={() => {
+                          const updated = [...editOptions];
+                          updated[idx] = { ...opt, is_correct: !opt.is_correct };
+                          setEditOptions(updated);
+                        }}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                        title="Mark as correct answer"
+                      />
+                    ) : (
+                      <input
+                        type="radio"
+                        name="edit_correct_option"
+                        checked={opt.is_correct}
+                        onChange={() => {
+                          const updated = editOptions.map((o, i) => ({
+                            ...o,
+                            is_correct: i === idx
+                          }));
+                          setEditOptions(updated);
+                        }}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                        title="Mark as single correct answer"
+                      />
+                    )}
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', minWidth: 20, color: '#94A3B8' }}>
+                      {String.fromCharCode(65 + idx)}:
+                    </span>
+                    <input
+                      type="text"
+                      value={opt.text}
+                      onChange={(e) => {
+                        const updated = [...editOptions];
+                        updated[idx].text = e.target.value;
+                        setEditOptions(updated);
+                      }}
+                      placeholder={`Option ${String.fromCharCode(65 + idx)} text`}
+                      style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+                    />
+                    {editOptions.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOption(idx, true)}
+                        className="btn btn-outline btn-sm"
+                        style={{ color: '#EF4444', borderColor: '#EF4444', padding: '4px 8px' }}
+                        title="Remove this option"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
                 Time Limit (seconds)
@@ -2454,10 +2820,51 @@ export default function QuizCreator() {
       <Modal
         isOpen={inlineModalOpen}
         onClose={() => setInlineModalOpen(false)}
-        title="Add Manual Multiple-Choice Question"
+        title={
+          newQuestionType === 'true_false'
+            ? 'Add Manual True / False Question'
+            : newQuestionType === 'multiple_select'
+            ? 'Add Manual Multiple Select Question'
+            : newQuestionType === 'short_answer'
+            ? 'Add Manual Short Answer Question'
+            : 'Add Manual Multiple-Choice Question'
+        }
         maxWidth={680}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
+                Question Format *
+              </label>
+              <select
+                value={newQuestionType}
+                onChange={(e) => handleNewQuestionTypeChange(e.target.value)}
+                style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+              >
+                <option value="multiple_choice">Multiple Choice (MCQ)</option>
+                <option value="true_false">True / False</option>
+                <option value="multiple_select">Multiple Select (Check all that apply)</option>
+                <option value="short_answer">Short Answer / Direct Recall</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
+                Difficulty Level
+              </label>
+              <select
+                value={newDifficulty}
+                onChange={(e) => setNewDifficulty(e.target.value)}
+                style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
               Question Prompt *
@@ -2471,44 +2878,165 @@ export default function QuizCreator() {
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
-              Answer Options (Mark the single correct answer)
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {newOptions.map((opt, idx) => (
-                <div key={opt.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <input
-                    type="radio"
-                    name="manual_correct_option"
-                    checked={opt.is_correct}
-                    onChange={() => {
-                      const updated = newOptions.map((o, i) => ({
-                        ...o,
-                        is_correct: i === idx
-                      }));
-                      setNewOptions(updated);
-                    }}
-                    style={{ width: 18, height: 18, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontWeight: 700, fontSize: '0.85rem', minWidth: 20, color: '#94A3B8' }}>
-                    {String.fromCharCode(65 + idx)}:
-                  </span>
-                  <input
-                    type="text"
-                    placeholder={`Option ${String.fromCharCode(65 + idx)}`}
-                    value={opt.text}
-                    onChange={(e) => {
-                      const updated = [...newOptions];
-                      updated[idx].text = e.target.value;
-                      setNewOptions(updated);
-                    }}
-                    style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
-                  />
+          {/* DYNAMIC OPTIONS BY FORMAT */}
+          {newQuestionType === 'true_false' ? (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 8, color: '#F8FAFC' }}>
+                Correct Answer (Click to select True or False) *
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div
+                  onClick={() => {
+                    setNewOptions([
+                      { id: 'opt_true', text: 'True', is_correct: true },
+                      { id: 'opt_false', text: 'False', is_correct: false }
+                    ]);
+                  }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: 10,
+                    border: `2px solid ${newOptions.find((o) => o.text === 'True')?.is_correct ? '#10B981' : '#334155'}`,
+                    backgroundColor: newOptions.find((o) => o.text === 'True')?.is_correct ? 'rgba(16, 185, 129, 0.15)' : '#0F172A',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34D399' }}>✓</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F8FAFC' }}>True</span>
+                  </div>
+                  {newOptions.find((o) => o.text === 'True')?.is_correct && (
+                    <span className="badge badge-success">Correct Answer</span>
+                  )}
                 </div>
-              ))}
+
+                <div
+                  onClick={() => {
+                    setNewOptions([
+                      { id: 'opt_true', text: 'True', is_correct: false },
+                      { id: 'opt_false', text: 'False', is_correct: true }
+                    ]);
+                  }}
+                  style={{
+                    padding: '16px',
+                    borderRadius: 10,
+                    border: `2px solid ${newOptions.find((o) => o.text === 'False')?.is_correct ? '#EF4444' : '#334155'}`,
+                    backgroundColor: newOptions.find((o) => o.text === 'False')?.is_correct ? 'rgba(239, 68, 68, 0.15)' : '#0F172A',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F87171' }}>✗</span>
+                    <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#F8FAFC' }}>False</span>
+                  </div>
+                  {newOptions.find((o) => o.text === 'False')?.is_correct && (
+                    <span className="badge badge-error">Correct Answer</span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          ) : newQuestionType === 'short_answer' ? (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
+                Expected Answer / Keyword *
+              </label>
+              <input
+                type="text"
+                placeholder="Type the exact expected answer..."
+                value={newShortAnswer}
+                onChange={(e) => setNewShortAnswer(e.target.value)}
+                style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: 4, display: 'block' }}>
+                Participant answers will be compared case-insensitively against this answer.
+              </span>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC', margin: 0 }}>
+                  Answer Options ({newQuestionType === 'multiple_select' ? 'Check all correct answers' : 'Select single correct answer'})
+                </label>
+                {newOptions.length < 6 && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddOption(false)}
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+                  >
+                    + Add Option
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {newOptions.map((opt, idx) => (
+                  <div key={opt.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {newQuestionType === 'multiple_select' ? (
+                      <input
+                        type="checkbox"
+                        checked={opt.is_correct}
+                        onChange={() => {
+                          const updated = [...newOptions];
+                          updated[idx] = { ...opt, is_correct: !opt.is_correct };
+                          setNewOptions(updated);
+                        }}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                        title="Mark as correct answer"
+                      />
+                    ) : (
+                      <input
+                        type="radio"
+                        name="manual_correct_option"
+                        checked={opt.is_correct}
+                        onChange={() => {
+                          const updated = newOptions.map((o, i) => ({
+                            ...o,
+                            is_correct: i === idx
+                          }));
+                          setNewOptions(updated);
+                        }}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                        title="Mark as single correct answer"
+                      />
+                    )}
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', minWidth: 20, color: '#94A3B8' }}>
+                      {String.fromCharCode(65 + idx)}:
+                    </span>
+                    <input
+                      type="text"
+                      placeholder={`Option ${String.fromCharCode(65 + idx)}`}
+                      value={opt.text}
+                      onChange={(e) => {
+                        const updated = [...newOptions];
+                        updated[idx].text = e.target.value;
+                        setNewOptions(updated);
+                      }}
+                      style={{ backgroundColor: '#0F172A', borderColor: '#334155' }}
+                    />
+                    {newOptions.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOption(idx, false)}
+                        className="btn btn-outline btn-sm"
+                        style={{ color: '#EF4444', borderColor: '#EF4444', padding: '4px 8px' }}
+                        title="Remove this option"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
