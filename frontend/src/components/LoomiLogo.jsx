@@ -140,7 +140,8 @@ export default function LoomiLogo({
         alignItems: 'center',
         gap: `${gap}px`,
         textDecoration: 'none',
-        userSelect: 'none'
+        userSelect: 'none',
+        cursor: 'pointer'
       }}
     >
       {symbol}
@@ -148,11 +149,20 @@ export default function LoomiLogo({
     </div>
   );
 
-  const destination = to;
+  const destination = to || '/';
 
-  if (clickable && destination) {
+  if (clickable !== false) {
     return (
-      <Link to={destination} style={{ textDecoration: 'none', display: 'inline-flex' }}>
+      <Link
+        to={destination}
+        style={{
+          textDecoration: 'none',
+          display: 'inline-flex',
+          cursor: 'pointer'
+        }}
+        title="Loomi Homepage"
+        aria-label="Loomi Homepage"
+      >
         {content}
       </Link>
     );

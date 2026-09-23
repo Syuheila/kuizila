@@ -49,7 +49,7 @@ export default function AdminLayout({ children }) {
       {/* Trainer Sidebar */}
       <aside className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <LoomiLogo to="/dashboard" size="md" />
+          <LoomiLogo to="/" size="md" />
           <button
             type="button"
             className="mobile-close-btn"

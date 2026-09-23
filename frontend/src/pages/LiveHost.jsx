@@ -143,7 +143,7 @@ export default function LiveHost() {
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <LoomiLogo to="/dashboard" size="md" />
+          <LoomiLogo to="/" size="md" />
           <span className="badge-pill brand" style={{ fontSize: '0.78rem' }}>Host Monitoring Room</span>
         </div>
 
