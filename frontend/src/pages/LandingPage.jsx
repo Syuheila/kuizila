@@ -333,7 +333,7 @@ export default function LandingPage() {
                 2. AI Question Generation
               </h3>
               <p style={{ fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.5, margin: 0 }}>
-                Synthesize high-quality questions on any topic in seconds using local Ollama AI (llama3.2:3b). Choose exact question counts and review before saving.
+                Synthesize high-quality questions on any topic in seconds. Choose exact question counts and review before saving.
               </p>
             </div>
 
