@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 import httpx
@@ -28,13 +29,25 @@ async def check_ollama_health() -> Dict[str, Any]:
         logger.warning(f"Ollama health check failed: {e}")
     return {"available": False, "primary_model": OLLAMA_MODEL, "primary_ready": False}
 
-async def query_ollama(prompt: str, system_prompt: str = "", model_override: Optional[str] = None) -> str:
+async def query_ollama(
+    prompt: str,
+    system_prompt: str = "",
+    model_override: Optional[str] = None,
+    format_json: Optional[bool] = None,
+    num_ctx: int = 2048,
+    num_predict: int = 2048
+) -> str:
     """
-    Sends a generate request to local Ollama.
-    Defaults to qwen3:8b with automatic fallback to llama3.2:3b if primary model is unavailable.
+    Sends an optimized generate request to local Ollama.
+    Defaults to llama3.2:3b for 100% GPU acceleration with automatic fallback to qwen3:8b.
     """
     url = f"{OLLAMA_BASE_URL}/api/generate"
     target_model = model_override or OLLAMA_MODEL
+
+    # Auto-detect if JSON grammar output should be enforced
+    should_json = format_json if format_json is not None else (
+        "json" in prompt.lower() or "json" in system_prompt.lower()
+    )
 
     async def _send(model_name: str) -> Optional[str]:
         payload = {
@@ -44,12 +57,17 @@ async def query_ollama(prompt: str, system_prompt: str = "", model_override: Opt
             "stream": False,
             "think": False,
             "options": {
-                "temperature": 0.3,
+                "temperature": 0.2,
                 "top_p": 0.9,
-                "num_predict": 4096,
+                "num_ctx": num_ctx,
+                "num_predict": num_predict,
+                "num_thread": 8,
             }
         }
-        async with httpx.AsyncClient(timeout=180.0) as client:
+        if should_json:
+            payload["format"] = "json"
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(url, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
@@ -63,12 +81,12 @@ async def query_ollama(prompt: str, system_prompt: str = "", model_override: Opt
                 return None
 
     try:
-        # 1. Attempt primary model (qwen3:8b)
+        # 1. Attempt primary model (llama3.2:3b)
         res = await _send(target_model)
         if res is not None:
             return res
 
-        # 2. If primary model is unavailable or failed, try fallback (llama3.2:3b)
+        # 2. If primary model is unavailable or failed, try fallback
         if target_model != OLLAMA_FALLBACK_MODEL and OLLAMA_FALLBACK_MODEL:
             logger.warning(f"Ollama model '{target_model}' unavailable. Attempting fallback to '{OLLAMA_FALLBACK_MODEL}'...")
             fallback_res = await _send(OLLAMA_FALLBACK_MODEL)
@@ -273,16 +291,53 @@ Return a valid JSON object strictly matching this schema:
 }}
 """
 
-    raw_response = await query_ollama(prompt, system_prompt)
     raw_questions = []
-    try:
-        parsed = extract_json(raw_response)
-        if isinstance(parsed, dict) and "questions" in parsed and isinstance(parsed["questions"], list):
-            raw_questions = parsed["questions"]
-        elif isinstance(parsed, list):
-            raw_questions = parsed
-    except Exception as e:
-        logger.warning(f"Failed to parse LLM JSON for topic quiz: {e}. Raw response: {raw_response[:200]}")
+
+    if num_questions > 10:
+        # Split larger requests into 2 parallel batches for 2x faster concurrent generation
+        half_1 = num_questions // 2
+        half_2 = num_questions - half_1
+
+        async def _fetch_batch(count: int, sub_theme: str):
+            sub_prompt = f"""Create {count} educational multiple-choice quiz questions on the topic: "{topic}" ({sub_theme}).
+{context_snippet}
+Target Audience: {target_audience}
+Target Difficulty: {difficulty}
+Language: {language}
+
+Requirements:
+- Exactly {count} questions with options A, B, C, D.
+- One correct answer ("A", "B", "C", or "D").
+- Concise explanation.
+
+Return JSON matching:
+{{"questions": [{{"question": "Question text?", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "correct_answer": "A", "explanation": "..."}}]}}"""
+            try:
+                res = await query_ollama(sub_prompt, system_prompt, format_json=True)
+                p = extract_json(res)
+                if isinstance(p, dict) and "questions" in p and isinstance(p["questions"], list):
+                    return p["questions"]
+                elif isinstance(p, list):
+                    return p
+            except Exception as e:
+                logger.warning(f"Batch generation failed: {e}")
+            return []
+
+        res1, res2 = await asyncio.gather(
+            _fetch_batch(half_1, "Core concepts and principles"),
+            _fetch_batch(half_2, "Practical applications and scenarios")
+        )
+        raw_questions = res1 + res2
+    else:
+        raw_response = await query_ollama(prompt, system_prompt, format_json=True)
+        try:
+            parsed = extract_json(raw_response)
+            if isinstance(parsed, dict) and "questions" in parsed and isinstance(parsed["questions"], list):
+                raw_questions = parsed["questions"]
+            elif isinstance(parsed, list):
+                raw_questions = parsed
+        except Exception as e:
+            logger.warning(f"Failed to parse LLM JSON for topic quiz: {e}. Raw response: {raw_response[:200]}")
 
     validated = validate_and_normalize_ai_questions(
         raw_questions,
@@ -773,16 +828,55 @@ Return a valid JSON object strictly matching this schema:
 }}
 """
 
-    raw = await query_ollama(prompt, system_prompt)
     raw_questions = []
-    try:
-        parsed = extract_json(raw)
-        if isinstance(parsed, dict) and "questions" in parsed and isinstance(parsed["questions"], list):
-            raw_questions = parsed["questions"]
-        elif isinstance(parsed, list):
-            raw_questions = parsed
-    except Exception as e:
-        logger.warning(f"Failed to parse LLM JSON for document quiz: {e}. Raw response: {raw[:200]}")
+
+    if num_questions > 10:
+        half_1 = num_questions // 2
+        half_2 = num_questions - half_1
+
+        async def _fetch_doc_batch(count: int, part_focus: str):
+            sub_prompt = f"""Generate {count} multiple-choice questions directly from the provided learning material ({part_focus}).
+
+Relevant Learning Material:
+\"\"\"
+{doc_text[:4000]}
+\"\"\"
+
+Target Difficulty: {difficulty}
+
+Requirements:
+- Exactly {count} questions with options A, B, C, D based strictly on the material.
+- Exactly one correct answer ("A", "B", "C", or "D").
+- Concise explanation based on the text.
+
+Return JSON matching:
+{{"questions": [{{"question": "Question text?", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "correct_answer": "A", "explanation": "..."}}]}}"""
+            try:
+                sub_raw = await query_ollama(sub_prompt, system_prompt, format_json=True)
+                p = extract_json(sub_raw)
+                if isinstance(p, dict) and "questions" in p and isinstance(p["questions"], list):
+                    return p["questions"]
+                elif isinstance(p, list):
+                    return p
+            except Exception as e:
+                logger.warning(f"Document batch generation failed: {e}")
+            return []
+
+        res1, res2 = await asyncio.gather(
+            _fetch_doc_batch(half_1, "Part 1: Key facts, definitions, and rules"),
+            _fetch_doc_batch(half_2, "Part 2: Workflows, applications, and scenarios")
+        )
+        raw_questions = res1 + res2
+    else:
+        raw = await query_ollama(prompt, system_prompt, format_json=True)
+        try:
+            parsed = extract_json(raw)
+            if isinstance(parsed, dict) and "questions" in parsed and isinstance(parsed["questions"], list):
+                raw_questions = parsed["questions"]
+            elif isinstance(parsed, list):
+                raw_questions = parsed
+        except Exception as e:
+            logger.warning(f"Failed to parse LLM JSON for document quiz: {e}. Raw response: {raw[:200]}")
 
     validated_questions = validate_and_normalize_ai_questions(
         raw_questions,
