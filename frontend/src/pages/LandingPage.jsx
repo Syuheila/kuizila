@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -6,7 +6,6 @@ import {
   BarChart3,
   Sparkles,
   Upload,
-  Radio,
   FileText,
   Clock,
   CheckCircle2,
@@ -26,35 +25,8 @@ export default function LandingPage() {
   const [gameCode, setGameCode] = useState('');
   const [codeError, setCodeError] = useState('');
   const [validatingPin, setValidatingPin] = useState(false);
-  const [liveActivity, setLiveActivity] = useState(null);
 
   const { user: currentUser } = useAuth();
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchTelemetry = async () => {
-      try {
-        const data = await api.getLiveActivity();
-        if (isMounted) setLiveActivity(data);
-      } catch (err) {
-        if (isMounted) {
-          setLiveActivity({
-            has_active_sessions: false,
-            active_sessions_count: 0,
-            active_participants_count: 0,
-            sessions: []
-          });
-        }
-      }
-    };
-
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 10000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
 
   const handleQuickJoin = async (e) => {
     e.preventDefault();
@@ -109,9 +81,6 @@ export default function LandingPage() {
           <nav className="landing-nav" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <a href="#capabilities" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#94A3B8' }}>
               Capabilities
-            </a>
-            <a href="#workflow" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#94A3B8' }}>
-              How It Works
             </a>
           </nav>
         </div>
@@ -251,10 +220,6 @@ export default function LandingPage() {
                 </button>
               </form>
             </div>
-
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #334155', fontSize: '0.78rem', color: '#64748B' }}>
-              ⚡ Guest contenders join with their nickname and custom avatar.
-            </div>
           </div>
 
           {/* Action 2: CREATE A QUIZ */}
@@ -328,40 +293,8 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #334155', fontSize: '0.78rem', color: '#64748B' }}>
-              📚 Quizzes are permanent, reusable assets you can host across multiple workshops.
-            </div>
           </div>
         </div>
-
-        {/* Live Workshop Activity Strip */}
-        {liveActivity && liveActivity.active_sessions_count > 0 && (
-          <div
-            style={{
-              padding: '16px 20px',
-              borderRadius: 12,
-              backgroundColor: 'rgba(6, 182, 212, 0.08)',
-              border: '1px solid rgba(6, 182, 212, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 12,
-              marginBottom: 48
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Radio size={18} color="#06B6D4" style={{ animation: 'pulse 1.5s infinite' }} />
-              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F8FAFC' }}>
-                {liveActivity.active_sessions_count} Live Workshop Session{liveActivity.active_sessions_count > 1 ? 's' : ''} in Progress
-              </span>
-            </div>
-            <span style={{ fontSize: '0.825rem', color: '#94A3B8' }}>
-              {liveActivity.active_participants_count} active participants responding in real time
-            </span>
-          </div>
-        )}
 
         {/* Section: 6 Core Platform Capabilities */}
         <div id="capabilities" style={{ paddingTop: 20, marginBottom: 56 }}>
@@ -499,48 +432,6 @@ export default function LandingPage() {
               <p style={{ fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.5, margin: 0 }}>
                 Instantly view which questions participants mastered vs. struggled with. Drill into option distributions, average response times, and export full reports to CSV.
               </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Section: Reusable Workflow */}
-        <div id="workflow" style={{
-          backgroundColor: '#0F172A',
-          border: '1px solid #334155',
-          borderRadius: 16,
-          padding: '32px 28px',
-          marginBottom: 48
-        }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F8FAFC', marginBottom: 8, textAlign: 'center' }}>
-            The Reusable Workshop Workflow
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: '#94A3B8', textAlign: 'center', maxWidth: '600px', margin: '0 auto 28px' }}>
-            Quizzes are content assets saved in your permanent library. Live sessions are individual executions of that quiz.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16 }}>
-            <div style={{ padding: '16px', borderRadius: 8, backgroundColor: '#1E293B', border: '1px solid #334155' }}>
-              <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#14B8A6', marginBottom: 4 }}>STEP 1</div>
-              <div style={{ fontWeight: 700, color: '#F8FAFC', fontSize: '0.95rem', marginBottom: 4 }}>Create & Curate</div>
-              <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.4 }}>Add questions manually, generate with AI, or upload training slides.</div>
-            </div>
-
-            <div style={{ padding: '16px', borderRadius: 8, backgroundColor: '#1E293B', border: '1px solid #334155' }}>
-              <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#06B6D4', marginBottom: 4 }}>STEP 2</div>
-              <div style={{ fontWeight: 700, color: '#F8FAFC', fontSize: '0.95rem', marginBottom: 4 }}>Launch Live Session</div>
-              <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.4 }}>Generates a 6-character PIN and QR code for frictionless participant joining.</div>
-            </div>
-
-            <div style={{ padding: '16px', borderRadius: 8, backgroundColor: '#1E293B', border: '1px solid #334155' }}>
-              <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#F59E0B', marginBottom: 4 }}>STEP 3</div>
-              <div style={{ fontWeight: 700, color: '#F8FAFC', fontSize: '0.95rem', marginBottom: 4 }}>Engage & Collect</div>
-              <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.4 }}>Synchronized timer countdowns, live response counts, and real-time leaderboards.</div>
-            </div>
-
-            <div style={{ padding: '16px', borderRadius: 8, backgroundColor: '#1E293B', border: '1px solid #334155' }}>
-              <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#38BDF8', marginBottom: 4 }}>STEP 4</div>
-              <div style={{ fontWeight: 700, color: '#F8FAFC', fontSize: '0.95rem', marginBottom: 4 }}>Analyze & Reuse</div>
-              <div style={{ fontSize: '0.8rem', color: '#94A3B8', lineHeight: 1.4 }}>View topic mastery metrics, export CSV reports, and re-host the same quiz anytime.</div>
             </div>
           </div>
         </div>
