@@ -101,17 +101,17 @@ export default function LiveParticipant() {
     return () => socket.disconnect();
   }, [code, participantId, displayName]);
 
-  // Music Soundtrack Lifecycle: Lobby music while waiting, Countdown music while answering
+  // Music Soundtrack Lifecycle: Lobby music while waiting, continuous gameplay music while answering
   useEffect(() => {
     const status = state?.status;
     if (status === 'waiting') {
       sound.playLobbyMusic();
-    } else if (status === 'answering' && !hasSubmitted) {
-      sound.playCountdownMusic(state?.question?.time_limit || 30);
-    } else {
+    } else if (status === 'answering') {
+      sound.playGameplayMusic();
+    } else if (status === 'completed') {
       sound.stopMusic();
     }
-  }, [state?.status, state?.question?.question_id, hasSubmitted]);
+  }, [state?.status]);
 
   useEffect(() => {
     return () => {
@@ -127,7 +127,6 @@ export default function LiveParticipant() {
   const submitAnswerInternal = async (selectedOpt, isTimeout = false) => {
     if (hasSubmitted || !state?.question) return;
     setHasSubmitted(true);
-    sound.stopMusic();
 
     const responseTime = Math.max(0.1, (Date.now() - questionStartClientRef.current) / 1000);
 

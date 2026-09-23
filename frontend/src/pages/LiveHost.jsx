@@ -78,17 +78,23 @@ export default function LiveHost() {
     }
   }, [session?.session_status]);
 
-  // Play Lobby soundtrack while participants are joining
+  // Music Soundtrack Lifecycle: Lobby music while waiting, continuous gameplay music while active
   useEffect(() => {
-    if (session?.session_status === 'waiting') {
+    const status = session?.session_status;
+    if (status === 'waiting') {
       sound.playLobbyMusic();
-    } else {
+    } else if (status === 'active') {
+      sound.playGameplayMusic();
+    } else if (status === 'completed') {
       sound.stopMusic();
     }
+  }, [session?.session_status]);
+
+  useEffect(() => {
     return () => {
       sound.stopMusic();
     };
-  }, [session?.session_status]);
+  }, []);
 
   useEffect(() => {
     if (!session?.session_code) return;
@@ -119,6 +125,7 @@ export default function LiveHost() {
   const handleStartSession = async () => {
     try {
       sound.playBattleStart();
+      sound.playGameplayMusic();
       const updated = await api.startSession(sessionId);
       setSession(updated);
     } catch (err) {
@@ -130,6 +137,7 @@ export default function LiveHost() {
     if (!window.confirm('Are you sure you want to conclude this live quiz?')) return;
     try {
       sound.playFanfare();
+      sound.stopMusic();
       const updated = await api.endSession(sessionId);
       setSession(updated);
     } catch (err) {
