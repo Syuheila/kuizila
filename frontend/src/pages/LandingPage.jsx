@@ -454,7 +454,7 @@ export default function LandingPage() {
           <span>• Interactive Quiz & Response Collection Platform</span>
         </div>
         <div>
-          Designed for trainers, instructors, and facilitators. Powered by SQLite and local Ollama AI.
+          Designed for trainers, instructors, and facilitators.
         </div>
       </footer>
     </div>
