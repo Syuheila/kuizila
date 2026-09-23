@@ -145,7 +145,7 @@ async def generate_from_file_endpoint(payload: GenerateFromFileRequest):
     if not material:
         raise HTTPException(status_code=404, detail="Please upload and process a learning material file first.")
 
-    num_q = max(1, min(20, payload.num_questions or 5))
+    num_q = max(1, min(50, payload.num_questions or 5))
     diff = (payload.difficulty or "medium").lower()
     try:
         questions = await generate_questions_from_material_ai(

@@ -46,9 +46,10 @@ async def query_ollama(prompt: str, system_prompt: str = "", model_override: Opt
             "options": {
                 "temperature": 0.3,
                 "top_p": 0.9,
+                "num_predict": 4096,
             }
         }
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             resp = await client.post(url, json=payload)
             if resp.status_code == 200:
                 data = resp.json()

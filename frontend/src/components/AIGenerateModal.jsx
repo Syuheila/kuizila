@@ -54,8 +54,8 @@ export default function AIGenerateModal({ isOpen, onClose, quizId, onQuestionsAd
     }
 
     const count = isCustom ? (parseInt(customCount, 10) || 5) : numQuestions;
-    if (count < 1 || count > 30) {
-      setErrorMessage('Please choose a question count between 1 and 30.');
+    if (count < 1 || count > 50) {
+      setErrorMessage('Please choose a question count between 1 and 50.');
       return;
     }
 
@@ -257,7 +257,7 @@ export default function AIGenerateModal({ isOpen, onClose, quizId, onQuestionsAd
                 Number of Questions
               </label>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                {[5, 10, 15, 20].map((count) => (
+                {[5, 10, 15, 20, 25, 30].map((count) => (
                   <button
                     key={count}
                     type="button"
@@ -284,10 +284,10 @@ export default function AIGenerateModal({ isOpen, onClose, quizId, onQuestionsAd
                   <input
                     type="number"
                     min={1}
-                    max={30}
+                    max={50}
                     value={customCount}
                     onChange={(e) => setCustomCount(e.target.value)}
-                    placeholder="e.g. 8"
+                    placeholder="e.g. 20"
                     className="form-control"
                     style={{
                       width: '100px',

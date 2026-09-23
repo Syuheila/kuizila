@@ -73,6 +73,7 @@ export default function QuizCreator() {
   const [fileQuestionCount, setFileQuestionCount] = useState(5);
   const [fileDifficulty, setFileDifficulty] = useState('medium');
   const [customFileCount, setCustomFileCount] = useState('');
+  const [isCustomFileCount, setIsCustomFileCount] = useState(false);
   const [generatingFromFile, setGeneratingFromFile] = useState(false);
   const [fileGenStatus, setFileGenStatus] = useState('');
   const [fileGenError, setFileGenError] = useState('');
@@ -95,6 +96,8 @@ export default function QuizCreator() {
   // ---------------- GENERATE FROM TOPIC STATE (Option 2) ----------------
   const [topicPrompt, setTopicPrompt] = useState('');
   const [topicCount, setTopicCount] = useState(5);
+  const [customTopicCount, setCustomTopicCount] = useState('');
+  const [isCustomTopicCount, setIsCustomTopicCount] = useState(false);
   const [topicDifficulty, setTopicDifficulty] = useState('medium');
   const [generatingFromTopic, setGeneratingFromTopic] = useState(false);
   const [topicGenStatus, setTopicGenStatus] = useState('');
@@ -280,16 +283,16 @@ export default function QuizCreator() {
       return;
     }
 
-    const count = customFileCount ? (parseInt(customFileCount, 10) || 5) : fileQuestionCount;
-    if (count < 1 || count > 20) {
-      setFileGenError('Please select between 1 and 20 questions.');
+    const count = isCustomFileCount ? (parseInt(customFileCount, 10) || 5) : fileQuestionCount;
+    if (count < 1 || count > 50) {
+      setFileGenError('Please select between 1 and 50 questions.');
       return;
     }
 
     try {
       setGeneratingFromFile(true);
       setFileGenError('');
-      setFileGenStatus('Reading material and crafting 4-choice questions using local AI...');
+      setFileGenStatus(`Reading material and crafting ${count} questions using local AI...`);
 
       const res = await api.generateQuestionsFromFile(material.material_id, count, fileDifficulty);
       const list = res.questions || [];
@@ -431,14 +434,20 @@ export default function QuizCreator() {
       return;
     }
 
+    const count = isCustomTopicCount ? (parseInt(customTopicCount, 10) || 5) : topicCount;
+    if (count < 1 || count > 50) {
+      setTopicGenError('Please select between 1 and 50 questions.');
+      return;
+    }
+
     try {
       setGeneratingFromTopic(true);
       setTopicGenError('');
-      setTopicGenStatus('Generating questions with local Ollama AI...');
+      setTopicGenStatus(`Generating ${count} questions with local Ollama AI...`);
 
       const response = await api.generateQuizAI({
         topic: topicPrompt.trim(),
-        num_questions: topicCount,
+        num_questions: count,
         difficulty: topicDifficulty,
         question_type: 'multiple_choice'
       });
@@ -1583,27 +1592,54 @@ export default function QuizCreator() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Questions:</span>
-                            {[3, 5, 10].map((num) => (
-                              <button
-                                key={num}
-                                type="button"
-                                onClick={() => {
-                                  setFileQuestionCount(num);
+                            <select
+                              value={isCustomFileCount ? 'custom' : fileQuestionCount}
+                              onChange={(e) => {
+                                if (e.target.value === 'custom') {
+                                  setIsCustomFileCount(true);
+                                } else {
+                                  setIsCustomFileCount(false);
+                                  setFileQuestionCount(Number(e.target.value));
                                   setCustomFileCount('');
-                                }}
+                                }
+                              }}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                                fontSize: '0.78rem',
+                                backgroundColor: '#1E293B',
+                                color: '#F8FAFC',
+                                borderColor: '#334155'
+                              }}
+                            >
+                              <option value={3}>3 Questions</option>
+                              <option value={5}>5 Questions</option>
+                              <option value={8}>8 Questions</option>
+                              <option value={10}>10 Questions</option>
+                              <option value={12}>12 Questions</option>
+                              <option value={15}>15 Questions</option>
+                              <option value={20}>20 Questions</option>
+                              <option value={25}>25 Questions</option>
+                              <option value={30}>30 Questions</option>
+                              <option value="custom">Custom...</option>
+                            </select>
+                            {isCustomFileCount && (
+                              <input
+                                type="number"
+                                min={1}
+                                max={50}
+                                value={customFileCount}
+                                onChange={(e) => setCustomFileCount(e.target.value)}
+                                placeholder="e.g. 20"
                                 style={{
-                                  padding: '4px 10px',
-                                  borderRadius: 6,
+                                  width: '75px',
+                                  padding: '4px 8px',
                                   fontSize: '0.78rem',
-                                  fontWeight: 600,
-                                  backgroundColor: fileQuestionCount === num && !customFileCount ? 'var(--color-teal)' : '#1E293B',
-                                  color: fileQuestionCount === num && !customFileCount ? '#FFFFFF' : '#94A3B8',
-                                  border: '1px solid #334155'
+                                  backgroundColor: '#0F172A',
+                                  borderColor: '#334155'
                                 }}
-                              >
-                                {num}
-                              </button>
-                            ))}
+                              />
+                            )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Difficulty:</span>
@@ -1686,15 +1722,47 @@ export default function QuizCreator() {
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: 6, color: '#F8FAFC' }}>
                       Number of Questions
                     </label>
-                    <select
-                      value={topicCount}
-                      onChange={(e) => setTopicCount(Number(e.target.value))}
-                      style={{ backgroundColor: '#1E293B', borderColor: '#334155' }}
-                    >
-                      <option value={3}>3 Questions</option>
-                      <option value={5}>5 Questions (Recommended)</option>
-                      <option value={10}>10 Questions</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <select
+                        value={isCustomTopicCount ? 'custom' : topicCount}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            setIsCustomTopicCount(true);
+                          } else {
+                            setIsCustomTopicCount(false);
+                            setTopicCount(Number(e.target.value));
+                            setCustomTopicCount('');
+                          }
+                        }}
+                        style={{ backgroundColor: '#1E293B', borderColor: '#334155', flex: 1 }}
+                      >
+                        <option value={3}>3 Questions</option>
+                        <option value={5}>5 Questions (Quick)</option>
+                        <option value={8}>8 Questions</option>
+                        <option value={10}>10 Questions (Standard)</option>
+                        <option value={12}>12 Questions</option>
+                        <option value={15}>15 Questions</option>
+                        <option value={20}>20 Questions (Comprehensive)</option>
+                        <option value={25}>25 Questions</option>
+                        <option value={30}>30 Questions (Full Assessment)</option>
+                        <option value="custom">Custom count...</option>
+                      </select>
+                      {isCustomTopicCount && (
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={customTopicCount}
+                          onChange={(e) => setCustomTopicCount(e.target.value)}
+                          placeholder="e.g. 20"
+                          style={{
+                            width: '85px',
+                            backgroundColor: '#0F172A',
+                            borderColor: '#334155'
+                          }}
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div>
