@@ -9,7 +9,7 @@ from ..schemas import (
     QuizCreate, QuizUpdate, QuizResponse, QuizDetailResponse, 
     QuestionResponse, QuizQuestionResponse, QuestionCreate, QuestionUpdate
 )
-from .auth import require_admin_role, require_authenticated_user
+from .auth import require_admin_role, require_authenticated_user, get_optional_user
 from ..services.pdf_service import generate_quiz_pdf, sanitize_filename
 
 logger = logging.getLogger("loomi_quizzes")
@@ -21,9 +21,12 @@ def list_quizzes(
     search: Optional[str] = None,
     category: Optional[str] = None,
     sort_by: str = Query("newest", pattern="^(newest|oldest|most_used|highest_score)$"),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_db)
 ):
     query = db.query(Quiz)
+    if current_user:
+        query = query.filter(Quiz.owner_id == current_user.id)
     if search:
         query = query.filter(Quiz.title.ilike(f"%{search}%") | Quiz.description.ilike(f"%{search}%"))
     if category and category != "All":

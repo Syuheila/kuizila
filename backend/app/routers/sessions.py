@@ -8,7 +8,7 @@ from ..database import get_db
 from ..models import QuizSession, Quiz, Participant, ParticipantAnswer, QuestionBank, QuizQuestion, User
 from ..schemas import SessionCreate, SessionStateResponse, ParticipantResponse
 from ..websocket.manager import ws_manager
-from .auth import require_admin_role, require_authenticated_user
+from .auth import require_admin_role, require_authenticated_user, get_optional_user
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
@@ -113,10 +113,12 @@ def build_session_state(session: QuizSession, include_answers: bool = False) -> 
 def list_sessions(
     status: Optional[str] = "all",
     limit: int = 50,
-    current_user: User = Depends(require_admin_role),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_db)
 ):
     query = db.query(QuizSession)
+    if current_user:
+        query = query.filter(QuizSession.host_id == current_user.id)
     if status == "active":
         query = query.filter(QuizSession.session_status.in_(["active", "question_review"]))
     elif status == "waiting":

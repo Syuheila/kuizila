@@ -1,33 +1,75 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from ..database import get_db
 from ..models import QuizSession, Participant, ParticipantAnswer, Quiz, QuestionBank, User
 from ..schemas import SessionReportResponse
 from ..services.report_service import generate_session_report_data, export_session_csv
-from .auth import require_admin_role, require_authenticated_user
+from .auth import require_admin_role, require_authenticated_user, get_optional_user
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 @router.get("/dashboard")
 def get_dashboard_kpis(
-    current_user: User = Depends(require_admin_role),
+    current_user: Optional[User] = Depends(get_optional_user),
     db: Session = Depends(get_db)
 ):
-    total_quizzes = db.query(Quiz).count()
-    total_sessions = db.query(QuizSession).count()
-    completed_sessions = db.query(QuizSession).filter(QuizSession.session_status == "completed").count()
-    total_participants = db.query(Participant).count()
-    
-    # Calculate average accuracy across all participants
-    participants = db.query(Participant).filter(Participant.final_percentage > 0).all()
-    avg_accuracy = (
-        sum(p.final_percentage for p in participants) / len(participants)
-        if participants else 78.4
-    )
+    if current_user:
+        user_quizzes_query = db.query(Quiz).filter(Quiz.owner_id == current_user.id)
+        user_sessions_query = db.query(QuizSession).filter(QuizSession.host_id == current_user.id)
 
-    # Recent quizzes
-    recent_quizzes = db.query(Quiz).order_by(Quiz.created_at.desc()).limit(5).all()
+        total_quizzes = user_quizzes_query.count()
+        total_sessions = user_sessions_query.count()
+        completed_sessions = user_sessions_query.filter(QuizSession.session_status == "completed").count()
+
+        total_participants = (
+            db.query(Participant)
+            .join(QuizSession, Participant.session_id == QuizSession.id)
+            .filter(QuizSession.host_id == current_user.id)
+            .count()
+        )
+
+        participants = (
+            db.query(Participant)
+            .join(QuizSession, Participant.session_id == QuizSession.id)
+            .filter(
+                QuizSession.host_id == current_user.id,
+                Participant.final_percentage > 0
+            )
+            .all()
+        )
+        avg_accuracy = (
+            sum(p.final_percentage for p in participants) / len(participants)
+            if participants else 0.0
+        )
+
+        recent_quizzes = user_quizzes_query.order_by(Quiz.created_at.desc()).limit(5).all()
+        recent_sessions = user_sessions_query.order_by(QuizSession.created_at.desc()).limit(5).all()
+
+        top_participants = (
+            db.query(Participant)
+            .join(QuizSession, Participant.session_id == QuizSession.id)
+            .filter(QuizSession.host_id == current_user.id)
+            .order_by(Participant.final_score.desc())
+            .limit(5)
+            .all()
+        )
+    else:
+        total_quizzes = db.query(Quiz).count()
+        total_sessions = db.query(QuizSession).count()
+        completed_sessions = db.query(QuizSession).filter(QuizSession.session_status == "completed").count()
+        total_participants = db.query(Participant).count()
+
+        participants = db.query(Participant).filter(Participant.final_percentage > 0).all()
+        avg_accuracy = (
+            sum(p.final_percentage for p in participants) / len(participants)
+            if participants else 0.0
+        )
+
+        recent_quizzes = db.query(Quiz).order_by(Quiz.created_at.desc()).limit(5).all()
+        recent_sessions = db.query(QuizSession).order_by(QuizSession.created_at.desc()).limit(5).all()
+        top_participants = db.query(Participant).order_by(Participant.final_score.desc()).limit(5).all()
+
     recent_list = []
     for q in recent_quizzes:
         recent_list.append({
@@ -39,8 +81,6 @@ def get_dashboard_kpis(
             "created_at": q.created_at.strftime("%Y-%m-%d")
         })
 
-    # Recent completed sessions
-    recent_sessions = db.query(QuizSession).order_by(QuizSession.created_at.desc()).limit(5).all()
     session_list = []
     for s in recent_sessions:
         p_count = len(s.participants)
@@ -54,8 +94,6 @@ def get_dashboard_kpis(
             "date": (s.started_at or s.created_at).strftime("%Y-%m-%d %H:%M")
         })
 
-    # Top performers
-    top_participants = db.query(Participant).order_by(Participant.final_score.desc()).limit(5).all()
     top_list = [
         {
             "name": p.display_name,

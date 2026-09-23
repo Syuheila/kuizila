@@ -250,4 +250,4 @@ def seed_quizzes_and_questions(db: Session):
 
 def seed_database(db: Session):
     seed_organization_and_users(db)
-    seed_quizzes_and_questions(db)
+    # Note: Dummy quizzes are disabled so all trainers start fresh with 0 quizzes

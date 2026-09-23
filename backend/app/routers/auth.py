@@ -102,6 +102,16 @@ def get_current_user(authorization: Optional[str] = Header(None), db: Session = 
 def require_authenticated_user(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
+def get_optional_user(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)) -> Optional[User]:
+    if not authorization:
+        return None
+    try:
+        return get_current_user(authorization=authorization, db=db)
+    except HTTPException:
+        return None
+    except Exception:
+        return None
+
 def require_admin_role(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role not in ["admin", "owner"]:
         raise HTTPException(

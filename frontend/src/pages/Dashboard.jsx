@@ -194,7 +194,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#F8FAFC', marginTop: '10px' }}>
-            {kpis.average_accuracy || 78.4}%
+            {(kpis.average_accuracy ?? 0)}%
           </div>
           <span style={{ fontSize: '0.78rem', color: '#94A3B8' }}>Across all responses</span>
         </div>
