@@ -86,22 +86,9 @@ export default function LandingPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {currentUser ? (
-            <button onClick={handleCreateQuizClick} className="btn-primary btn-sm">
-              <Sparkles size={14} />
-              <span>Create Quiz</span>
-            </button>
-          ) : (
-            <>
-              <Link to="/login" className="btn-outline btn-sm">
-                Trainer Sign In
-              </Link>
-              <button onClick={handleCreateQuizClick} className="btn-primary btn-sm">
-                <span>Create a Quiz</span>
-                <ArrowRight size={14} />
-              </button>
-            </>
-          )}
+          <Link to="/login" className="btn-outline btn-sm">
+            Trainer Sign In
+          </Link>
         </div>
       </header>
 
