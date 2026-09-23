@@ -5,6 +5,21 @@ class SoundEngine {
   constructor() {
     this.ctx = null;
     this.muted = localStorage.getItem("loomi_sound_muted") === "true";
+    this.musicAudio = null;
+    this.currentTrack = null;
+    this.musicVolume = 0.45;
+    this.listeners = new Set();
+  }
+
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  notify() {
+    this.listeners.forEach((fn) => {
+      try { fn(this.muted); } catch (e) {}
+    });
   }
 
   init() {
@@ -26,7 +41,80 @@ class SoundEngine {
   toggleMute() {
     this.muted = !this.muted;
     localStorage.setItem("loomi_sound_muted", this.muted ? "true" : "false");
+    if (this.muted) {
+      if (this.musicAudio) {
+        this.musicAudio.pause();
+      }
+    } else {
+      if (this.musicAudio) {
+        this.musicAudio.play().catch(() => {});
+      }
+    }
+    this.notify();
     return this.muted;
+  }
+
+  // ---------------- SOUNDTRACKS (Kahoot Lobby & Countdown) ----------------
+  playLobbyMusic() {
+    if (this.muted) return;
+    if (this.currentTrack === 'lobby' && this.musicAudio && !this.musicAudio.paused) return;
+
+    this.stopMusic();
+    try {
+      this.musicAudio = new Audio('/audio/lobby.mp3');
+      this.musicAudio.loop = true;
+      this.musicAudio.volume = this.musicVolume;
+      this.currentTrack = 'lobby';
+      const playPromise = this.musicAudio.play();
+      if (playPromise) {
+        playPromise.catch((err) => {
+          console.warn('[Loomi Sound] Autoplay blocked, will start on user interaction:', err.message);
+        });
+      }
+    } catch (e) {
+      console.warn('[Loomi Sound] Could not play lobby soundtrack:', e);
+    }
+  }
+
+  playCountdownMusic(timeLimit = 30) {
+    if (this.muted) return;
+    if (this.currentTrack === 'countdown' && this.musicAudio && !this.musicAudio.paused) return;
+
+    this.stopMusic();
+    try {
+      this.musicAudio = new Audio('/audio/countdown_60s.mp3');
+      this.musicAudio.loop = false;
+      this.musicAudio.volume = this.musicVolume;
+      this.currentTrack = 'countdown';
+
+      // User requested 60-second soundtrack while answering in 30 seconds:
+      // Starting at second 30 aligns the crescendo and climaxes right at the final 0s!
+      if (timeLimit <= 30) {
+        this.musicAudio.currentTime = 30.0;
+      } else {
+        this.musicAudio.currentTime = 0;
+      }
+
+      const playPromise = this.musicAudio.play();
+      if (playPromise) {
+        playPromise.catch((err) => {
+          console.warn('[Loomi Sound] Autoplay blocked:', err.message);
+        });
+      }
+    } catch (e) {
+      console.warn('[Loomi Sound] Could not play countdown soundtrack:', e);
+    }
+  }
+
+  stopMusic() {
+    if (this.musicAudio) {
+      try {
+        this.musicAudio.pause();
+        this.musicAudio.currentTime = 0;
+      } catch (e) {}
+      this.musicAudio = null;
+      this.currentTrack = null;
+    }
   }
 
   // Chime when participant joins

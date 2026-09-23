@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import LoomiLogo from '../components/LoomiLogo';
 import Modal from '../components/Modal';
+import SoundToggle from '../components/SoundToggle';
 import { LoomiSocket } from '../services/websocket';
 import { api } from '../services/api';
 import { sound } from '../utils/sound';
@@ -75,6 +76,18 @@ export default function LiveHost() {
     if (session?.session_status === 'completed' && !insightsData && !insightsLoading && !insightsError) {
       fetchInsights();
     }
+  }, [session?.session_status]);
+
+  // Play Lobby soundtrack while participants are joining
+  useEffect(() => {
+    if (session?.session_status === 'waiting') {
+      sound.playLobbyMusic();
+    } else {
+      sound.stopMusic();
+    }
+    return () => {
+      sound.stopMusic();
+    };
   }, [session?.session_status]);
 
   useEffect(() => {
@@ -147,14 +160,17 @@ export default function LiveHost() {
           <span className="badge-pill brand" style={{ fontSize: '0.78rem' }}>Host Monitoring Room</span>
         </div>
 
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="btn-outline btn-sm"
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          <ArrowLeft size={14} />
-          <span>Exit to Dashboard</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <SoundToggle />
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="btn-outline btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <ArrowLeft size={14} />
+            <span>Exit to Dashboard</span>
+          </button>
+        </div>
       </div>
 
       {/* Session PIN Banner */}

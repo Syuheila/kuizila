@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Timer from '../components/Timer';
 import LoomiLogo from '../components/LoomiLogo';
+import SoundToggle from '../components/SoundToggle';
 import { LoomiSocket } from '../services/websocket';
 import { api } from '../services/api';
 import { sound } from '../utils/sound';
@@ -100,6 +101,24 @@ export default function LiveParticipant() {
     return () => socket.disconnect();
   }, [code, participantId, displayName]);
 
+  // Music Soundtrack Lifecycle: Lobby music while waiting, Countdown music while answering
+  useEffect(() => {
+    const status = state?.status;
+    if (status === 'waiting') {
+      sound.playLobbyMusic();
+    } else if (status === 'answering' && !hasSubmitted) {
+      sound.playCountdownMusic(state?.question?.time_limit || 30);
+    } else {
+      sound.stopMusic();
+    }
+  }, [state?.status, state?.question?.question_id, hasSubmitted]);
+
+  useEffect(() => {
+    return () => {
+      sound.stopMusic();
+    };
+  }, []);
+
   const handleSelectOption = (opt) => {
     if (hasSubmitted || state?.status !== 'answering') return;
     setSelectedOption(opt);
@@ -108,6 +127,7 @@ export default function LiveParticipant() {
   const submitAnswerInternal = async (selectedOpt, isTimeout = false) => {
     if (hasSubmitted || !state?.question) return;
     setHasSubmitted(true);
+    sound.stopMusic();
 
     const responseTime = Math.max(0.1, (Date.now() - questionStartClientRef.current) / 1000);
 
@@ -231,6 +251,7 @@ export default function LiveParticipant() {
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8', letterSpacing: '0.05em' }}>
             PIN: {code}
           </span>
+          <SoundToggle />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
