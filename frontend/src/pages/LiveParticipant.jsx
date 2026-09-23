@@ -93,6 +93,7 @@ export default function LiveParticipant() {
         sound.playBattleStart();
         loadParticipantState();
       } else if (event.event === 'SESSION_COMPLETED') {
+        sound.playLobbyMusic();
         loadParticipantState();
       }
     });
@@ -101,7 +102,7 @@ export default function LiveParticipant() {
     return () => socket.disconnect();
   }, [code, participantId, displayName]);
 
-  // Music Soundtrack Lifecycle: Lobby music while waiting, continuous gameplay music while answering
+  // Music Soundtrack Lifecycle: Lobby music while waiting and after finishing answering, continuous gameplay music while answering
   useEffect(() => {
     const status = state?.status;
     if (status === 'waiting') {
@@ -109,7 +110,7 @@ export default function LiveParticipant() {
     } else if (status === 'answering') {
       sound.playGameplayMusic();
     } else if (status === 'completed') {
-      sound.stopMusic();
+      sound.playLobbyMusic();
     }
   }, [state?.status]);
 
@@ -150,6 +151,7 @@ export default function LiveParticipant() {
       setTimeout(() => {
         if (res.status === 'completed') {
           sound.playFanfare();
+          sound.playLobbyMusic();
           confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
           setState({
             status: 'completed',

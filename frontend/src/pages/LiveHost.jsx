@@ -78,7 +78,7 @@ export default function LiveHost() {
     }
   }, [session?.session_status]);
 
-  // Music Soundtrack Lifecycle: Lobby music while waiting, continuous gameplay music while active
+  // Music Soundtrack Lifecycle: Lobby music while waiting and after finishing quiz, continuous gameplay music while active
   useEffect(() => {
     const status = session?.session_status;
     if (status === 'waiting') {
@@ -86,7 +86,7 @@ export default function LiveHost() {
     } else if (status === 'active') {
       sound.playGameplayMusic();
     } else if (status === 'completed') {
-      sound.stopMusic();
+      sound.playLobbyMusic();
     }
   }, [session?.session_status]);
 
@@ -137,7 +137,7 @@ export default function LiveHost() {
     if (!window.confirm('Are you sure you want to conclude this live quiz?')) return;
     try {
       sound.playFanfare();
-      sound.stopMusic();
+      sound.playLobbyMusic();
       const updated = await api.endSession(sessionId);
       setSession(updated);
     } catch (err) {
