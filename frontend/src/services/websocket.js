@@ -14,13 +14,21 @@ export class LoomiSocket {
 
   connect() {
     this.isClosedManually = false;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host; // handled by Vite proxy
     const query = new URLSearchParams();
     if (this.participantId) query.append('participant_id', this.participantId);
     if (this.displayName) query.append('display_name', this.displayName);
 
-    const wsUrl = `${protocol}//${host}/ws/session/${this.sessionCode}/${this.role}?${query.toString()}`;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+    let wsUrl = '';
+    if (apiBase) {
+      const wsProtocol = apiBase.startsWith('https') ? 'wss:' : 'ws:';
+      const cleanHost = apiBase.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      wsUrl = `${wsProtocol}//${cleanHost}/ws/session/${this.sessionCode}/${this.role}?${query.toString()}`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      wsUrl = `${protocol}//${host}/ws/session/${this.sessionCode}/${this.role}?${query.toString()}`;
+    }
 
     try {
       this.ws = new WebSocket(wsUrl);

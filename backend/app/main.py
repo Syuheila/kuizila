@@ -61,15 +61,52 @@ def on_startup():
     finally:
         db.close()
 
-@app.get("/")
-def root():
-    return {
-        "status": "online",
-        "service": "Loomi Backend API",
-        "docs_url": "/docs",
-        "frontend_url": "http://localhost:5173",
-        "message": "Loomi API is running. Access interactive API documentation at /docs or open the frontend application on http://localhost:5173."
-    }
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# Check for production frontend build (unified single-service deployment)
+def _find_frontend_dist():
+    candidates = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist")),
+        os.path.abspath(os.path.join(os.getcwd(), "frontend/dist")),
+        os.path.abspath(os.path.join(os.getcwd(), "../frontend/dist")),
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.path.isfile(os.path.join(c, "index.html")):
+            return c
+    return None
+
+frontend_dist = _find_frontend_dist()
+
+if frontend_dist:
+    logger.info(f"Serving compiled frontend SPA from {frontend_dist}")
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/")
+    async def serve_spa_root():
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+
+    @app.get("/{full_path:path}")
+    async def serve_spa_fallback(full_path: str):
+        if full_path.startswith("api") or full_path.startswith("ws") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+            return None
+        candidate = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+else:
+    @app.get("/")
+    def root():
+        return {
+            "status": "online",
+            "service": "Loomi Backend API",
+            "docs_url": "/docs",
+            "frontend_url": "http://localhost:5173",
+            "message": "Loomi API is running. Access interactive API documentation at /docs or open the frontend application on http://localhost:5173."
+        }
 
 @app.get("/api/health")
 def health_check():

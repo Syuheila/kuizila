@@ -1,6 +1,7 @@
 // API service for interacting with FastAPI backend
 
-const BASE_URL = '/api';
+const API_HOST = import.meta.env.VITE_API_BASE_URL || '';
+const BASE_URL = API_HOST ? `${API_HOST.replace(/\/+$/, '')}/api` : '/api';
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
