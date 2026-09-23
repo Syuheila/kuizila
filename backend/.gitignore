@@ -1,0 +1,22 @@
+# Backend Git Ignore
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+loomi.db*
+uploads/*
+!uploads/.gitkeep
+*.log
