@@ -43,7 +43,9 @@ export default function LiveParticipant() {
 
   const questionStartClientRef = useRef(Date.now());
   const advanceTimerRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
   const latestSubmitResultRef = useRef(null);
+  const [advanceCountdown, setAdvanceCountdown] = useState(null);
 
   useEffect(() => {
     if (!participantId) {
@@ -122,6 +124,9 @@ export default function LiveParticipant() {
       if (advanceTimerRef.current) {
         clearTimeout(advanceTimerRef.current);
       }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
     };
   }, []);
 
@@ -130,6 +135,12 @@ export default function LiveParticipant() {
       clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
     }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setAdvanceCountdown(null);
+
     if (!res) {
       loadParticipantState();
       return;
@@ -210,10 +221,26 @@ export default function LiveParticipant() {
         pointsEarned: res.points_earned || 0
       });
 
-      // Show feedback for 2.2 seconds then advance smoothly to next question
+      // Allow comfortable reading time for explanation (6 seconds if explanation exists, 4.5 seconds otherwise)
+      const delaySeconds = res.explanation ? 6 : 4.5;
+      setAdvanceCountdown(Math.ceil(delaySeconds));
+
+      let remaining = Math.ceil(delaySeconds);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+          setAdvanceCountdown(null);
+        } else {
+          setAdvanceCountdown(remaining);
+        }
+      }, 1000);
+
       advanceTimerRef.current = setTimeout(() => {
         proceedToNext(res);
-      }, 2200);
+      }, delaySeconds * 1000);
     } catch (err) {
       console.error('Submit answer error:', err);
       setHasSubmitted(false);
@@ -580,21 +607,37 @@ export default function LiveParticipant() {
                   onClick={() => proceedToNext(latestSubmitResultRef.current)}
                   className="btn-primary"
                   style={{
-                    padding: '8px 16px',
+                    padding: '9px 18px',
                     fontSize: '0.85rem',
                     fontWeight: 700,
                     gap: 6
                   }}
                 >
-                  <span>Next Question</span>
+                  <span>Next Question {advanceCountdown ? `(${advanceCountdown}s)` : ''}</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
 
               {feedback.explanation && (
-                <div style={{ padding: '10px 14px', borderRadius: 8, backgroundColor: '#0F172A', border: '1px solid #1E293B', fontSize: '0.85rem', color: '#CBD5E1' }}>
-                  <span style={{ fontWeight: 700, color: '#38BDF8', marginRight: 6 }}>Explanation:</span>
-                  {feedback.explanation}
+                <div
+                  style={{
+                    padding: '14px 18px',
+                    borderRadius: 10,
+                    backgroundColor: '#0F172A',
+                    border: '1px solid #1E293B',
+                    fontSize: '0.92rem',
+                    lineHeight: 1.55,
+                    color: '#E2E8F0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#38BDF8', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <Sparkles size={15} color="#38BDF8" />
+                    <span>Explanation & Key Takeaway</span>
+                  </div>
+                  <p style={{ margin: 0 }}>{feedback.explanation}</p>
                 </div>
               )}
 
@@ -605,7 +648,7 @@ export default function LiveParticipant() {
                     height: '100%',
                     backgroundColor: feedback.isCorrect ? '#10B981' : '#EF4444',
                     width: '100%',
-                    animation: 'feedbackShrink 2.2s linear forwards'
+                    animation: `feedbackShrink ${feedback.explanation ? 6 : 4.5}s linear forwards`
                   }}
                 />
               </div>
