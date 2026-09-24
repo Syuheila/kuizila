@@ -1,8 +1,9 @@
 import asyncio
 import json
 import re
+import time
 import httpx
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set
 from ..config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_FALLBACK_MODEL
 import logging
 
@@ -272,12 +273,21 @@ async def generate_quiz_ai(
     question_type: str = "multiple_choice",
     context_text: Optional[str] = None,
     target_audience: str = "Corporate employees",
-    language: str = "English"
+    language: str = "English",
+    model_override: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Generates a structured quiz on the specified topic using local Ollama.
     Guarantees returning the exact number of requested questions via progressive chunking.
+    Includes comprehensive testing/benchmark telemetry for model comparison.
     """
+    active_model = model_override or OLLAMA_MODEL
+    total_start_time = time.time()
+    logger.info(
+        f"[AI Testing Log] START Quiz Generation | Model: '{active_model}' | "
+        f"Topic: '{topic}' | Requested: {num_questions} questions | Difficulty: '{difficulty}'"
+    )
+
     context_snippet = ""
     if context_text:
         context_snippet = f"\nRelevant source material / notes:\n\"\"\"\n{context_text[:3000]}\n\"\"\"\n"
@@ -300,14 +310,16 @@ async def generate_quiz_ai(
     ]
 
     validated_questions: List[Dict[str, Any]] = []
-    seen_questions = set()
+    seen_questions: Set[str] = set()
     theme_idx = 0
     max_attempts = max(4, ((num_questions + 4) // 5) + 3)
+    retries_count = 0
 
     while len(validated_questions) < num_questions and theme_idx < max_attempts:
         needed = num_questions - len(validated_questions)
         chunk_size = min(5, max(2, needed))
         theme = sub_themes[theme_idx % len(sub_themes)]
+        batch_num = theme_idx + 1
         theme_idx += 1
 
         chunk_prompt = f"""Create exactly {chunk_size} educational multiple-choice quiz questions on the topic: "{topic}" (Sub-focus: {theme}).
@@ -345,9 +357,22 @@ Return JSON strictly matching:
     }}
   ]
 }}"""
+        batch_t0 = time.time()
+        logger.info(
+            f"[AI Testing Log] Batch {batch_num}/{max_attempts} dispatching | "
+            f"Model: '{active_model}' | Focus: '{theme}' | Chunk target: {chunk_size} | Still needed: {needed}"
+        )
         try:
-            chunk_res = await query_ollama(chunk_prompt, system_prompt, format_json=True)
+            chunk_res = await query_ollama(
+                chunk_prompt,
+                system_prompt,
+                model_override=active_model,
+                format_json=True
+            )
+            batch_dt = time.time() - batch_t0
             p = extract_json(chunk_res)
+            parse_success = p is not None and isinstance(p, (dict, list))
+
             chunk_raw = []
             if isinstance(p, dict) and "questions" in p and isinstance(p["questions"], list):
                 chunk_raw = p["questions"]
@@ -369,12 +394,27 @@ Return JSON strictly matching:
                 validated_questions.append(q)
                 if len(validated_questions) >= num_questions:
                     break
+
+            logger.info(
+                f"[AI Testing Log] Batch {batch_num} completed in {batch_dt:.2f}s | "
+                f"Model: '{active_model}' | JSON Parsed: {parse_success} | "
+                f"Raw questions received: {len(chunk_raw)} | Valid accepted: {len(new_validated)} | "
+                f"Progress: {len(validated_questions)}/{num_questions} questions"
+            )
         except Exception as e:
-            logger.warning(f"Chunk generation failed for theme '{theme}': {e}")
+            batch_dt = time.time() - batch_t0
+            retries_count += 1
+            logger.warning(
+                f"[AI Testing Log] Batch {batch_num} ERROR after {batch_dt:.2f}s | "
+                f"Model: '{active_model}' | Error: {e} | Retries: {retries_count}"
+            )
 
     # Fallback if no questions could be generated at all
     if not validated_questions:
-        logger.warning("AI generation returned no valid questions. Providing fallback template question.")
+        logger.warning(
+            f"[AI Testing Log] Zero questions generated after {theme_idx} batches with '{active_model}'. "
+            f"Providing template fallback question."
+        )
         validated_questions = [
             {
                 "id": "topic_q_1",
@@ -396,32 +436,50 @@ Return JSON strictly matching:
         ]
 
     # If short by a few questions after all attempts, synthesize complementary questions to reach target count
-    while len(validated_questions) < num_questions:
-        fill_idx = len(validated_questions) + 1
-        base_theme = sub_themes[(fill_idx - 1) % len(sub_themes)]
-        validated_questions.append({
-            "id": f"topic_q_{fill_idx}",
-            "question_type": "multiple_choice",
-            "question_text": f"In {topic}, which factor is most crucial regarding {base_theme.lower()}?",
-            "options": [
-                {"id": "opt_1", "text": f"Standardized execution aligned with verified {topic} guidelines", "is_correct": True},
-                {"id": "opt_2", "text": "Ad-hoc decisions without formal recording or team consensus", "is_correct": False},
-                {"id": "opt_3", "text": "Ignoring established verification steps to expedite closure", "is_correct": False},
-                {"id": "opt_4", "text": "Relying on outdated metrics and unmonitored workflows", "is_correct": False}
-            ],
-            "correct_answer": f"Standardized execution aligned with verified {topic} guidelines",
-            "explanation": f"Systematic execution and adherence to protocols is essential in {topic}.",
-            "difficulty": difficulty,
-            "category": topic,
-            "default_time_limit": 30,
-            "default_points": 100
-        })
+    if len(validated_questions) < num_questions:
+        shortfall = num_questions - len(validated_questions)
+        logger.info(
+            f"[AI Testing Log] Applying complementary synthesis for {shortfall} remaining questions to guarantee requested {num_questions} target."
+        )
+        while len(validated_questions) < num_questions:
+            fill_idx = len(validated_questions) + 1
+            base_theme = sub_themes[(fill_idx - 1) % len(sub_themes)]
+            validated_questions.append({
+                "id": f"topic_q_{fill_idx}",
+                "question_type": "multiple_choice",
+                "question_text": f"In {topic}, which factor is most crucial regarding {base_theme.lower()}?",
+                "options": [
+                    {"id": "opt_1", "text": f"Standardized execution aligned with verified {topic} guidelines", "is_correct": True},
+                    {"id": "opt_2", "text": "Ad-hoc decisions without formal recording or team consensus", "is_correct": False},
+                    {"id": "opt_3", "text": "Ignoring established verification steps to expedite closure", "is_correct": False},
+                    {"id": "opt_4", "text": "Relying on outdated metrics and unmonitored workflows", "is_correct": False}
+                ],
+                "correct_answer": f"Standardized execution aligned with verified {topic} guidelines",
+                "explanation": f"Systematic execution and adherence to protocols is essential in {topic}.",
+                "difficulty": difficulty,
+                "category": topic,
+                "default_time_limit": 30,
+                "default_points": 100
+            })
+
+    total_dt = time.time() - total_start_time
+    logger.info(
+        f"[AI Testing Log] COMPLETED Quiz Generation | Model: '{active_model}' | "
+        f"Total Time: {total_dt:.2f}s | Batches: {theme_idx} | Retries: {retries_count} | "
+        f"Final Questions Delivered: {len(validated_questions[:num_questions])}/{num_questions}"
+    )
 
     return {
         "title": f"{topic} Assessment",
         "category": "Corporate Training",
         "description": f"Assessment for {topic}",
-        "questions": validated_questions[:num_questions]
+        "questions": validated_questions[:num_questions],
+        "meta": {
+            "model_used": active_model,
+            "total_time_seconds": round(total_dt, 2),
+            "batches_count": theme_idx,
+            "questions_count": len(validated_questions[:num_questions])
+        }
     }
 
 async def improve_question_ai(
@@ -819,13 +877,23 @@ Return a valid JSON object strictly matching this schema:
 async def generate_questions_from_material_ai(
     material_text: str,
     num_questions: int = 5,
-    difficulty: str = "medium"
+    difficulty: str = "medium",
+    model_override: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Generates multiple-choice quiz questions based strictly on the uploaded learning material.
+    Guarantees returning the exact number of requested questions via progressive chunking.
+    Includes comprehensive testing/benchmark telemetry for model comparison.
     """
     from .document_service import get_context_for_prompt
     bounded_context = get_context_for_prompt(material_text, max_words=2500)
+
+    active_model = model_override or OLLAMA_MODEL
+    total_start_time = time.time()
+    logger.info(
+        f"[AI Testing Log] START Document Quiz Generation | Model: '{active_model}' | "
+        f"Material length: {len(material_text)} chars | Requested: {num_questions} questions | Difficulty: '{difficulty}'"
+    )
 
     system_prompt = (
         "You are Loomi's expert training assessment author. "
@@ -886,14 +954,16 @@ Return a valid JSON object strictly matching this schema:
     ]
 
     validated_questions: List[Dict[str, Any]] = []
-    seen_questions = set()
+    seen_questions: Set[str] = set()
     theme_idx = 0
     max_attempts = max(4, ((num_questions + 4) // 5) + 3)
+    retries_count = 0
 
     while len(validated_questions) < num_questions and theme_idx < max_attempts:
         needed = num_questions - len(validated_questions)
         chunk_size = min(5, max(3, needed))
         part_focus = doc_sub_themes[theme_idx % len(doc_sub_themes)]
+        batch_num = theme_idx + 1
         theme_idx += 1
 
         sub_prompt = f"""Generate exactly {chunk_size} multiple-choice questions directly from the provided learning material ({part_focus}).
@@ -930,9 +1000,22 @@ Return JSON strictly matching:
     }}
   ]
 }}"""
+        batch_t0 = time.time()
+        logger.info(
+            f"[AI Testing Log] Document Batch {batch_num}/{max_attempts} dispatching | "
+            f"Model: '{active_model}' | Focus: '{part_focus}' | Chunk target: {chunk_size} | Still needed: {needed}"
+        )
         try:
-            sub_raw = await query_ollama(sub_prompt, system_prompt, format_json=True)
+            sub_raw = await query_ollama(
+                sub_prompt,
+                system_prompt,
+                model_override=active_model,
+                format_json=True
+            )
+            batch_dt = time.time() - batch_t0
             p = extract_json(sub_raw)
+            parse_success = p is not None and isinstance(p, (dict, list))
+
             chunk_raw = []
             if isinstance(p, dict) and "questions" in p and isinstance(p["questions"], list):
                 chunk_raw = p["questions"]
@@ -954,33 +1037,60 @@ Return JSON strictly matching:
                 validated_questions.append(q)
                 if len(validated_questions) >= num_questions:
                     break
+
+            logger.info(
+                f"[AI Testing Log] Document Batch {batch_num} completed in {batch_dt:.2f}s | "
+                f"Model: '{active_model}' | JSON Parsed: {parse_success} | "
+                f"Raw questions received: {len(chunk_raw)} | Valid accepted: {len(new_validated)} | "
+                f"Progress: {len(validated_questions)}/{num_questions} questions"
+            )
         except Exception as e:
-            logger.warning(f"Document chunk generation failed for {part_focus}: {e}")
+            batch_dt = time.time() - batch_t0
+            retries_count += 1
+            logger.warning(
+                f"[AI Testing Log] Document Batch {batch_num} ERROR after {batch_dt:.2f}s | "
+                f"Model: '{active_model}' | Error: {e} | Retries: {retries_count}"
+            )
 
     if not validated_questions:
+        logger.warning(
+            f"[AI Testing Log] Zero questions generated from document after {theme_idx} batches with '{active_model}'."
+        )
         raise ValueError("Could not extract valid multiple-choice questions from the AI output. Please try again or upload a richer document.")
 
     # If short by a few questions after all attempts, synthesize complementary questions to reach target count
-    while len(validated_questions) < num_questions:
-        fill_idx = len(validated_questions) + 1
-        part_focus = doc_sub_themes[(fill_idx - 1) % len(doc_sub_themes)]
-        validated_questions.append({
-            "id": f"file_q_{fill_idx}",
-            "question_type": "multiple_choice",
-            "question_text": f"According to the provided material ({part_focus}), which statement is correct?",
-            "options": [
-                {"id": "opt_1", "text": "Adhere strictly to all verified organizational guidelines outlined in the text", "is_correct": True},
-                {"id": "opt_2", "text": "Disregard standard protocols when working under tight deadlines", "is_correct": False},
-                {"id": "opt_3", "text": "Assume unofficial instructions take precedence over written directives", "is_correct": False},
-                {"id": "opt_4", "text": "Skip mandatory incident documentation if no damage occurred", "is_correct": False}
-            ],
-            "correct_answer": "Adhere strictly to all verified organizational guidelines outlined in the text",
-            "explanation": "Strict compliance with verified organizational policies is mandatory.",
-            "difficulty": difficulty,
-            "category": "Learning Material",
-            "default_time_limit": 30,
-            "default_points": 100
-        })
+    if len(validated_questions) < num_questions:
+        shortfall = num_questions - len(validated_questions)
+        logger.info(
+            f"[AI Testing Log] Applying complementary synthesis for {shortfall} remaining document questions to guarantee requested {num_questions} target."
+        )
+        while len(validated_questions) < num_questions:
+            fill_idx = len(validated_questions) + 1
+            part_focus = doc_sub_themes[(fill_idx - 1) % len(doc_sub_themes)]
+            validated_questions.append({
+                "id": f"file_q_{fill_idx}",
+                "question_type": "multiple_choice",
+                "question_text": f"According to the provided material ({part_focus}), which statement is correct?",
+                "options": [
+                    {"id": "opt_1", "text": "Adhere strictly to all verified organizational guidelines outlined in the text", "is_correct": True},
+                    {"id": "opt_2", "text": "Disregard standard protocols when working under tight deadlines", "is_correct": False},
+                    {"id": "opt_3", "text": "Assume unofficial instructions take precedence over written directives", "is_correct": False},
+                    {"id": "opt_4", "text": "Skip mandatory incident documentation if no damage occurred", "is_correct": False}
+                ],
+                "correct_answer": "Adhere strictly to all verified organizational guidelines outlined in the text",
+                "explanation": "Strict compliance with verified organizational policies is mandatory.",
+                "difficulty": difficulty,
+                "category": "Learning Material",
+                "default_time_limit": 30,
+                "default_points": 100
+            })
+
+    total_dt = time.time() - total_start_time
+    logger.info(
+        f"[AI Testing Log] COMPLETED Document Quiz Generation | Model: '{active_model}' | "
+        f"Total Time: {total_dt:.2f}s | Batches: {theme_idx} | Retries: {retries_count} | "
+        f"Final Questions Delivered: {len(validated_questions[:num_questions])}/{num_questions}"
+    )
 
     return validated_questions[:num_questions]
 

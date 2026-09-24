@@ -356,7 +356,7 @@ export default function AIGenerateModal({ isOpen, onClose, quizId, onQuestionsAd
               <div>
                 <span style={{ fontWeight: 600, color: '#F8FAFC' }}>Powered by Local Ollama AI Engine</span>
                 <span style={{ display: 'block', color: '#94A3B8' }}>
-                  Runs completely privately on your infrastructure using the llama3.2:3b model. No third-party data transmission.
+                  Runs completely privately on your infrastructure using local Ollama AI models. No third-party data transmission.
                 </span>
               </div>
             </div>
@@ -417,7 +417,7 @@ export default function AIGenerateModal({ isOpen, onClose, quizId, onQuestionsAd
               }}
             >
               <RefreshCw size={14} className="spinning" />
-              <span>Model: llama3.2:3b • Target: {isCustom ? customCount : numQuestions} Questions</span>
+              <span>Local Ollama AI Engine • Target: {isCustom ? customCount : numQuestions} Questions</span>
             </div>
           </div>
         )}

@@ -238,6 +238,7 @@ class AIGenerateRequest(BaseModel):
     context_text: Optional[str] = None
     target_audience: str = "Corporate employees"
     language: str = "English"
+    model: Optional[str] = None
 
 class AIImproveQuestionRequest(BaseModel):
     question_text: str

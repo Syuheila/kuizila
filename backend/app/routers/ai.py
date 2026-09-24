@@ -18,6 +18,7 @@ from ..services.ai_service import (
     generate_study_guide_ai, summarize_material_ai,
     generate_quiz_insights_ai
 )
+from ..config import OLLAMA_MODEL, OLLAMA_FALLBACK_MODEL
 from ..services.document_service import extract_document_text, extract_document_text_and_meta, material_store
 from ..services.report_service import generate_session_report_data
 from ..models import QuizSession, User, Quiz, QuizQuestion, QuestionBank
@@ -26,6 +27,7 @@ class GenerateFromFileRequest(BaseModel):
     material_id: str
     num_questions: Optional[int] = 5
     difficulty: Optional[str] = "medium"
+    model: Optional[str] = None
 
 class ChatWithMaterialRequest(BaseModel):
     material_id: str
@@ -38,14 +40,16 @@ router = APIRouter(prefix="/api/ai", tags=["ai"])
 async def ai_health():
     health_info = await check_ollama_health()
     is_ready = bool(health_info.get("available") and (health_info.get("primary_ready") or health_info.get("fallback_ready")))
+    active_primary = health_info.get("primary_model", OLLAMA_MODEL)
+    active_fallback = health_info.get("fallback_model", OLLAMA_FALLBACK_MODEL)
     return {
         "status": "ready" if is_ready else "unavailable",
         "provider": "Loomi AI Engine",
-        "primary_model": health_info.get("primary_model", "qwen3:8b"),
-        "fallback_model": health_info.get("fallback_model", "llama3.2:3b"),
+        "primary_model": active_primary,
+        "fallback_model": active_fallback,
         "active": is_ready,
         "message": (
-            f"Loomi AI Engine is ready with {health_info.get('primary_model', 'qwen3:8b')}."
+            f"Loomi AI Engine is ready with {active_primary}."
             if is_ready
             else "AI services are currently initializing or unavailable. Please verify local Ollama is running."
         )
@@ -62,7 +66,8 @@ async def generate_quiz_endpoint(payload: AIGenerateRequest, db: Session = Depen
             question_type=payload.question_type,
             context_text=payload.context_text,
             target_audience=payload.target_audience,
-            language=payload.language
+            language=payload.language,
+            model_override=payload.model
         )
         return result
     except Exception as e:
@@ -151,7 +156,8 @@ async def generate_from_file_endpoint(payload: GenerateFromFileRequest):
         questions = await generate_questions_from_material_ai(
             material_text=material["text"],
             num_questions=num_q,
-            difficulty=diff
+            difficulty=diff,
+            model_override=payload.model
         )
         return {
             "status": "success",
