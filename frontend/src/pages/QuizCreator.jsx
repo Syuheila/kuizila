@@ -63,8 +63,8 @@ export default function QuizCreator() {
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Active Creation Mode Tab: 'material' | 'topic' | 'manual'
-  const [activeTab, setActiveTab] = useState('material');
+  // Active Creation Mode Tab: 'manual' | 'topic' | 'material'
+  const [activeTab, setActiveTab] = useState('manual');
 
   // ---------------- LEARNING MATERIAL STATE (Option 3) ----------------
   const [material, setMaterial] = useState(null); // { material_id, filename, character_count, word_count, preview, unit_count, unit_label }
@@ -1323,7 +1323,10 @@ export default function QuizCreator() {
             }}>
               <button
                 type="button"
-                onClick={() => setActiveTab('material')}
+                onClick={() => {
+                  setActiveTab('manual');
+                  setInlineModalOpen(true);
+                }}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -1335,13 +1338,13 @@ export default function QuizCreator() {
                   fontSize: '0.85rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  backgroundColor: activeTab === 'material' ? 'var(--color-teal)' : 'transparent',
-                  color: activeTab === 'material' ? '#FFFFFF' : '#94A3B8',
+                  backgroundColor: activeTab === 'manual' ? 'var(--color-teal)' : 'transparent',
+                  color: activeTab === 'manual' ? '#FFFFFF' : '#94A3B8',
                   transition: 'all 0.15s'
                 }}
               >
-                <UploadCloud size={16} />
-                <span>Option 3: Learning Material (PDF/PPT)</span>
+                <PlusCircle size={16} />
+                <span>Option 1: Manual Creation</span>
               </button>
 
               <button
@@ -1369,10 +1372,7 @@ export default function QuizCreator() {
 
               <button
                 type="button"
-                onClick={() => {
-                  setActiveTab('manual');
-                  setInlineModalOpen(true);
-                }}
+                onClick={() => setActiveTab('material')}
                 style={{
                   flex: 1,
                   display: 'flex',
@@ -1384,15 +1384,88 @@ export default function QuizCreator() {
                   fontSize: '0.85rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  backgroundColor: activeTab === 'manual' ? 'var(--color-teal)' : 'transparent',
-                  color: activeTab === 'manual' ? '#FFFFFF' : '#94A3B8',
+                  backgroundColor: activeTab === 'material' ? 'var(--color-teal)' : 'transparent',
+                  color: activeTab === 'material' ? '#FFFFFF' : '#94A3B8',
                   transition: 'all 0.15s'
                 }}
               >
-                <PlusCircle size={16} />
-                <span>Option 1: Manual Creation</span>
+                <UploadCloud size={16} />
+                <span>Option 3: Learning Material (PDF/PPT)</span>
               </button>
             </div>
+
+            {/* TAB CONTENT: OPTION 1 (MANUAL CREATION HELPER) */}
+            {activeTab === 'manual' && (
+              <div style={{
+                backgroundColor: '#0F172A',
+                border: '1px dashed #334155',
+                borderRadius: 10,
+                padding: '24px 18px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 14
+              }}>
+                <PlusCircle size={36} color="var(--color-teal)" />
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#F8FAFC' }}>Manual Question Creation</h4>
+                  <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: 440, marginTop: 4 }}>
+                    Choose your preferred format to craft tailored assessment questions manually.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('multiple_choice');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-teal btn-sm"
+                    style={{ padding: '8px 16px' }}
+                  >
+                    <PlusCircle size={15} />
+                    <span>+ Multiple Choice (MCQ)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('true_false');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '8px 16px', borderColor: 'var(--color-teal)', color: '#2DD4BF' }}
+                  >
+                    <CheckCircle2 size={15} />
+                    <span>+ True / False</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('multiple_select');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '8px 16px' }}
+                  >
+                    <CheckSquare size={15} />
+                    <span>+ Multiple Select</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleNewQuestionTypeChange('short_answer');
+                      setInlineModalOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '8px 16px' }}
+                  >
+                    <FileQuestion size={15} />
+                    <span>+ Short Answer</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* TAB CONTENT: OPTION 3 (LEARNING MATERIAL) */}
             {activeTab === 'material' && (
@@ -1805,79 +1878,6 @@ export default function QuizCreator() {
                     <span>{topicGenError}</span>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* TAB CONTENT: OPTION 1 (MANUAL CREATION HELPER) */}
-            {activeTab === 'manual' && (
-              <div style={{
-                backgroundColor: '#0F172A',
-                border: '1px dashed #334155',
-                borderRadius: 10,
-                padding: '24px 18px',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 14
-              }}>
-                <PlusCircle size={36} color="var(--color-teal)" />
-                <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#F8FAFC' }}>Manual Question Creation</h4>
-                  <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: 440, marginTop: 4 }}>
-                    Choose your preferred format to craft tailored assessment questions manually.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleNewQuestionTypeChange('multiple_choice');
-                      setInlineModalOpen(true);
-                    }}
-                    className="btn btn-teal btn-sm"
-                    style={{ padding: '8px 16px' }}
-                  >
-                    <PlusCircle size={15} />
-                    <span>+ Multiple Choice (MCQ)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleNewQuestionTypeChange('true_false');
-                      setInlineModalOpen(true);
-                    }}
-                    className="btn btn-outline btn-sm"
-                    style={{ padding: '8px 16px', borderColor: 'var(--color-teal)', color: '#2DD4BF' }}
-                  >
-                    <CheckCircle2 size={15} />
-                    <span>+ True / False</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleNewQuestionTypeChange('multiple_select');
-                      setInlineModalOpen(true);
-                    }}
-                    className="btn btn-outline btn-sm"
-                    style={{ padding: '8px 16px' }}
-                  >
-                    <CheckSquare size={15} />
-                    <span>+ Multiple Select</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleNewQuestionTypeChange('short_answer');
-                      setInlineModalOpen(true);
-                    }}
-                    className="btn btn-outline btn-sm"
-                    style={{ padding: '8px 16px' }}
-                  >
-                    <FileQuestion size={15} />
-                    <span>+ Short Answer</span>
-                  </button>
-                </div>
               </div>
             )}
           </div>

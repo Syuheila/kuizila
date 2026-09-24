@@ -436,14 +436,29 @@ async def process_answer_submission(payload: AnswerSubmitRequest, db: Session):
         }
     })
 
-    # Conceal correct answer, is_correct, and points during live quiz to prevent participant leakage
+    # Identify correct option id for immediate feedback display
+    correct_opt_id = None
+    if question.options:
+        for opt in question.options:
+            if opt.get("is_correct"):
+                correct_opt_id = str(opt.get("id"))
+                break
+        if not correct_opt_id and question.correct_answer:
+            c_text = str(question.correct_answer).strip().lower()
+            for opt in question.options:
+                if str(opt.get("id")).strip().lower() == c_text or str(opt.get("text")).strip().lower() == c_text:
+                    correct_opt_id = str(opt.get("id"))
+                    break
+
+    # Return immediate feedback with correct answer, is_correct, and points
     return AnswerSubmitResponse(
-        is_correct=None,
-        points_earned=0,
+        is_correct=is_correct,
+        points_earned=points_earned,
         streak_count=participant.streak_count or 0,
         total_score=participant.final_score or 0,
-        explanation=None,
-        correct_answer=None,
+        explanation=question.explanation,
+        correct_answer=question.correct_answer,
+        correct_option_id=correct_opt_id,
         status=participant.status,
         current_question_index=participant.current_question_index,
         total_questions=total_q,

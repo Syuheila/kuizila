@@ -42,6 +42,8 @@ export default function LiveParticipant() {
   const [currentStreak, setCurrentStreak] = useState(0);
 
   const questionStartClientRef = useRef(Date.now());
+  const advanceTimerRef = useRef(null);
+  const latestSubmitResultRef = useRef(null);
 
   useEffect(() => {
     if (!participantId) {
@@ -117,17 +119,63 @@ export default function LiveParticipant() {
   useEffect(() => {
     return () => {
       sound.stopMusic();
+      if (advanceTimerRef.current) {
+        clearTimeout(advanceTimerRef.current);
+      }
     };
   }, []);
 
-  const handleSelectOption = (opt) => {
-    if (hasSubmitted || state?.status !== 'answering') return;
-    setSelectedOption(opt);
+  const proceedToNext = (res) => {
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+    if (!res) {
+      loadParticipantState();
+      return;
+    }
+
+    if (res.status === 'completed') {
+      sound.playFanfare();
+      sound.playLobbyMusic();
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      setState({
+        status: 'completed',
+        session_id: state.session_id,
+        session_code: state.session_code,
+        quiz_title: state.quiz_title,
+        participant_id: participantId,
+        display_name: displayName,
+        final_score: res.total_score,
+        final_percentage: res.result?.final_percentage ?? 100,
+        final_rank: res.result?.final_rank ?? 1,
+        correct_count: res.result?.correct_count ?? 0,
+        total_questions: res.total_questions
+      });
+    } else if (res.next_question) {
+      setSelectedOption(null);
+      setHasSubmitted(false);
+      setFeedback(null);
+      questionStartClientRef.current = Date.now();
+      setState((prev) => ({
+        ...prev,
+        status: 'answering',
+        score: res.total_score,
+        streak: res.streak_count,
+        current_question_index: res.current_question_index,
+        total_questions: res.total_questions,
+        question: res.next_question,
+        remaining_seconds: res.remaining_seconds
+      }));
+    } else {
+      loadParticipantState();
+    }
   };
 
   const submitAnswerInternal = async (selectedOpt, isTimeout = false) => {
     if (hasSubmitted || !state?.question) return;
     setHasSubmitted(true);
+    if (selectedOpt) setSelectedOption(selectedOpt);
 
     const responseTime = Math.max(0.1, (Date.now() - questionStartClientRef.current) / 1000);
 
@@ -140,59 +188,46 @@ export default function LiveParticipant() {
         responseTime
       );
 
-      setFeedback({
-        submitted: true,
-        isTimeout: isTimeout
-      });
+      latestSubmitResultRef.current = res;
+      const isCorrect = res.is_correct === true;
+      if (isCorrect) {
+        sound.playCorrect();
+      } else {
+        sound.playIncorrect();
+      }
+
       if (res.total_score !== undefined) setCurrentScore(res.total_score);
       if (res.streak_count !== undefined) setCurrentStreak(res.streak_count);
 
-      // Automatically advance after brief 0.5s feedback flash
-      setTimeout(() => {
-        if (res.status === 'completed') {
-          sound.playFanfare();
-          sound.playLobbyMusic();
-          confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-          setState({
-            status: 'completed',
-            session_id: state.session_id,
-            session_code: state.session_code,
-            quiz_title: state.quiz_title,
-            participant_id: participantId,
-            display_name: displayName,
-            final_score: res.total_score,
-            final_percentage: res.result?.final_percentage ?? 100,
-            final_rank: res.result?.final_rank ?? 1,
-            correct_count: res.result?.correct_count ?? 0,
-            total_questions: res.total_questions
-          });
-        } else if (res.next_question) {
-          setSelectedOption(null);
-          setHasSubmitted(false);
-          setFeedback(null);
-          questionStartClientRef.current = Date.now();
-          setState((prev) => ({
-            ...prev,
-            status: 'answering',
-            score: res.total_score,
-            streak: res.streak_count,
-            current_question_index: res.current_question_index,
-            total_questions: res.total_questions,
-            question: res.next_question,
-            remaining_seconds: res.remaining_seconds
-          }));
-        } else {
-          loadParticipantState();
-        }
-      }, 500);
+      setFeedback({
+        submitted: true,
+        isTimeout: isTimeout,
+        isCorrect: isCorrect,
+        selectedOptId: selectedOpt ? selectedOpt.id : null,
+        correctOptId: res.correct_option_id,
+        correctAnswer: res.correct_answer,
+        explanation: res.explanation,
+        pointsEarned: res.points_earned || 0
+      });
+
+      // Show feedback for 2.2 seconds then advance smoothly to next question
+      advanceTimerRef.current = setTimeout(() => {
+        proceedToNext(res);
+      }, 2200);
     } catch (err) {
       console.error('Submit answer error:', err);
       setHasSubmitted(false);
     }
   };
 
+  const handleSelectOption = (opt) => {
+    if (hasSubmitted || state?.status !== 'answering') return;
+    setSelectedOption(opt);
+    submitAnswerInternal(opt, false);
+  };
+
   const handleSubmitAnswer = () => {
-    if (!selectedOption) return;
+    if (!selectedOption || hasSubmitted) return;
     submitAnswerInternal(selectedOption, false);
   };
 
@@ -393,6 +428,63 @@ export default function LiveParticipant() {
           <div className="participant-options-grid">
             {(currentQ.options || []).map((opt, idx) => {
               const isSelected = selectedOption?.id === opt.id;
+              const isWrongClicked = feedback && !feedback.isCorrect && (String(opt.id) === String(feedback.selectedOptId));
+              const isRightAnswer = feedback && (
+                String(opt.id) === String(feedback.correctOptId) ||
+                (feedback.isCorrect && String(opt.id) === String(feedback.selectedOptId)) ||
+                (feedback.correctAnswer && (
+                  String(opt.text).trim().toLowerCase() === String(feedback.correctAnswer).trim().toLowerCase() ||
+                  String(opt.id).trim().toLowerCase() === String(feedback.correctAnswer).trim().toLowerCase()
+                ))
+              );
+
+              let btnBg = '#1E293B';
+              let btnBorder = isSelected ? '#38BDF8' : '#334155';
+              let btnColor = isSelected ? '#38BDF8' : '#F8FAFC';
+              let badgeBg = isSelected ? '#38BDF8' : '#0F172A';
+              let badgeColor = isSelected ? '#0F172A' : '#94A3B8';
+              let statusBadge = null;
+
+              if (feedback) {
+                if (isRightAnswer) {
+                  btnBg = 'rgba(16, 185, 129, 0.2)';
+                  btnBorder = '#10B981';
+                  btnColor = '#34D399';
+                  badgeBg = '#10B981';
+                  badgeColor = '#FFFFFF';
+                  statusBadge = (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#34D399', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0 }}>
+                      <CheckCircle2 size={22} color="#10B981" />
+                      <span>Correct</span>
+                    </span>
+                  );
+                } else if (isWrongClicked) {
+                  btnBg = 'rgba(239, 68, 68, 0.2)';
+                  btnBorder = '#EF4444';
+                  btnColor = '#F87171';
+                  badgeBg = '#EF4444';
+                  badgeColor = '#FFFFFF';
+                  statusBadge = (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F87171', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0 }}>
+                      <XCircle size={22} color="#EF4444" />
+                      <span>Wrong</span>
+                    </span>
+                  );
+                } else {
+                  btnBg = '#0F172A';
+                  btnBorder = '#1E293B';
+                  btnColor = '#64748B';
+                  badgeBg = '#1E293B';
+                  badgeColor = '#64748B';
+                }
+              } else if (isSelected) {
+                btnBg = 'rgba(56, 189, 248, 0.15)';
+                btnBorder = '#38BDF8';
+                btnColor = '#38BDF8';
+                badgeBg = '#38BDF8';
+                badgeColor = '#0F172A';
+              }
+
               return (
                 <button
                   key={opt.id || idx}
@@ -401,55 +493,124 @@ export default function LiveParticipant() {
                   onClick={() => handleSelectOption(opt)}
                   className="participant-option-btn"
                   style={{
-                    border: `2px solid ${isSelected ? '#38BDF8' : '#334155'}`,
-                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.15)' : '#1E293B',
-                    color: isSelected ? '#38BDF8' : '#F8FAFC',
-                    cursor: hasSubmitted ? 'default' : 'pointer'
+                    border: `2px solid ${btnBorder}`,
+                    backgroundColor: btnBg,
+                    color: btnColor,
+                    cursor: hasSubmitted ? 'default' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '14px 18px',
+                    borderRadius: 12,
+                    boxShadow: feedback && (isRightAnswer || isWrongClicked) ? (isRightAnswer ? '0 0 16px rgba(16, 185, 129, 0.25)' : '0 0 16px rgba(239, 68, 68, 0.25)') : 'none',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
                 >
-                  <span
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: '50%',
-                      backgroundColor: isSelected ? '#38BDF8' : '#0F172A',
-                      color: isSelected ? '#0F172A' : '#94A3B8',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 800,
-                      fontSize: '0.85rem',
-                      flexShrink: 0
-                    }}
-                  >
-                    {String.fromCharCode(65 + idx)}
-                  </span>
-                  <span style={{ wordBreak: 'break-word', flex: 1 }}>{opt.text}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        backgroundColor: badgeBg,
+                        color: badgeColor,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '0.9rem',
+                        flexShrink: 0,
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    <span style={{ wordBreak: 'break-word', fontWeight: 600, fontSize: '0.95rem', textAlign: 'left' }}>
+                      {opt.text}
+                    </span>
+                  </div>
+                  {statusBadge}
                 </button>
               );
             })}
           </div>
 
-          {/* Submit Action */}
-          {!hasSubmitted ? (
-            <button
-              type="button"
-              onClick={handleSubmitAnswer}
-              disabled={!selectedOption}
-              className="btn-primary"
+          {/* Feedback & Advance Banner */}
+          {feedback ? (
+            <div
               style={{
-                padding: '14px',
-                fontSize: '1rem',
-                fontWeight: 800,
-                width: '100%',
-                marginTop: 8,
-                opacity: selectedOption ? 1 : 0.6,
-                cursor: selectedOption ? 'pointer' : 'not-allowed'
+                borderRadius: 12,
+                padding: '18px 20px',
+                backgroundColor: feedback.isCorrect ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                border: `1px solid ${feedback.isCorrect ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+                animation: 'fadeIn 0.2s ease-out'
               }}
             >
-              Submit Answer
-            </button>
-          ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {feedback.isCorrect ? (
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', flexShrink: 0 }}>
+                      <CheckCircle2 size={26} />
+                    </div>
+                  ) : (
+                    <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', flexShrink: 0 }}>
+                      <XCircle size={26} />
+                    </div>
+                  )}
+                  <div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: feedback.isCorrect ? '#34D399' : '#F87171', margin: 0 }}>
+                      {feedback.isCorrect ? 'Correct!' : 'Wrong Answer!'}
+                    </h3>
+                    <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0, marginTop: 2 }}>
+                      {feedback.isCorrect
+                        ? `+${feedback.pointsEarned} points awarded!`
+                        : feedback.correctAnswer
+                          ? `The correct answer is: ${feedback.correctAnswer}`
+                          : 'See the correct answer highlighted in green above'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => proceedToNext(latestSubmitResultRef.current)}
+                  className="btn-primary"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    gap: 6
+                  }}
+                >
+                  <span>Next Question</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+
+              {feedback.explanation && (
+                <div style={{ padding: '10px 14px', borderRadius: 8, backgroundColor: '#0F172A', border: '1px solid #1E293B', fontSize: '0.85rem', color: '#CBD5E1' }}>
+                  <span style={{ fontWeight: 700, color: '#38BDF8', marginRight: 6 }}>Explanation:</span>
+                  {feedback.explanation}
+                </div>
+              )}
+
+              {/* Countdown progress indicator */}
+              <div style={{ width: '100%', height: 4, backgroundColor: '#1E293B', borderRadius: 2, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    backgroundColor: feedback.isCorrect ? '#10B981' : '#EF4444',
+                    width: '100%',
+                    animation: 'feedbackShrink 2.2s linear forwards'
+                  }}
+                />
+              </div>
+            </div>
+          ) : hasSubmitted ? (
             <div
               style={{
                 textAlign: 'center',
@@ -462,7 +623,11 @@ export default function LiveParticipant() {
                 fontSize: '0.95rem'
               }}
             >
-              ✓ Answer recorded! Moving to next question...
+              Checking answer...
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '10px', color: '#64748B', fontSize: '0.85rem' }}>
+              Click an option above to answer
             </div>
           )}
         </div>

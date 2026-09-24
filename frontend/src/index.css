@@ -674,7 +674,9 @@ input:focus, select:focus, textarea:focus {
    ========================================================================== */
 .admin-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   background-color: var(--bg-page);
 }
 
@@ -684,9 +686,10 @@ input:focus, select:focus, textarea:focus {
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 0;
   height: 100vh;
+  flex-shrink: 0;
+  overflow-y: auto;
+  position: relative;
   z-index: 20;
 }
 
@@ -782,6 +785,9 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .admin-header {
@@ -795,6 +801,7 @@ input:focus, select:focus, textarea:focus {
   position: sticky;
   top: 0;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .admin-header-title {
@@ -1482,5 +1489,26 @@ input:focus, select:focus, textarea:focus {
     border-radius: 12px;
   }
 }
+
+@keyframes feedbackShrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 

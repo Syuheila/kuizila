@@ -177,6 +177,7 @@ class AnswerSubmitResponse(BaseModel):
     total_score: int = 0
     explanation: Optional[str] = None
     correct_answer: Optional[Any] = None
+    correct_option_id: Optional[str] = None
     status: Optional[str] = "answering"
     current_question_index: Optional[int] = 0
     total_questions: Optional[int] = 0
