@@ -3,7 +3,7 @@ from fastapi import WebSocket
 import json
 import logging
 
-logger = logging.getLogger("loomi_ws")
+logger = logging.getLogger("kuizila_ws")
 
 class ConnectionManager:
     def __init__(self):

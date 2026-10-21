@@ -113,18 +113,18 @@ def generate_quiz_pdf(quiz, include_answers: bool = False) -> bytes:
 
     # Custom typography styles
     brand_style = ParagraphStyle(
-        'LoomiBrand',
+        'KuizilaBrand',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
         fontSize=10,
         leading=12,
-        textColor=colors.HexColor("#0D9488"),  # Loomi Teal
+        textColor=colors.HexColor("#0D9488"),  # Kuizila Teal
         textTransform='uppercase',
         spaceAfter=4
     )
 
     title_style = ParagraphStyle(
-        'LoomiTitle',
+        'KuizilaTitle',
         parent=styles['Title'],
         fontName='Helvetica-Bold',
         fontSize=18,
@@ -135,7 +135,7 @@ def generate_quiz_pdf(quiz, include_answers: bool = False) -> bytes:
     )
 
     subtitle_badge_style = ParagraphStyle(
-        'LoomiSubtitleBadge',
+        'KuizilaSubtitleBadge',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
         fontSize=10,
@@ -145,7 +145,7 @@ def generate_quiz_pdf(quiz, include_answers: bool = False) -> bytes:
     )
 
     meta_text_style = ParagraphStyle(
-        'LoomiMeta',
+        'KuizilaMeta',
         parent=styles['Normal'],
         fontName='Helvetica',
         fontSize=9,
@@ -154,7 +154,7 @@ def generate_quiz_pdf(quiz, include_answers: bool = False) -> bytes:
     )
 
     instruction_style = ParagraphStyle(
-        'LoomiInstruction',
+        'KuizilaInstruction',
         parent=styles['Normal'],
         fontName='Helvetica-Oblique',
         fontSize=9,

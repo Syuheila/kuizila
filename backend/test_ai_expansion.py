@@ -14,7 +14,7 @@ from app.models import QuizSession, Quiz, Participant, ParticipantAnswer, QuizQu
 
 async def run_tests():
     print("==================================================")
-    print("STARTING LOOMI AI EXPANSION & REFINEMENT TEST SUITE")
+    print("STARTING KUIZILA AI EXPANSION & REFINEMENT TEST SUITE")
     print("==================================================")
 
     # 1. Test Question Improver
@@ -95,7 +95,7 @@ async def run_tests():
     # 4. Test Study Guide Generation
     print("\n[TEST 4] AI Study Guide Generation from Document Material...")
     material_sample = """
-    Loomi Corporate Security Guidelines (2026 Edition):
+    Kuizila Corporate Security Guidelines (2026 Edition):
     1. Incident Escalation: Whenever an unauthorized access attempt or ransomware indicator is detected, the employee must immediately disconnect the workstation from the local network and notify the Security Operations Center (SOC) within 15 minutes.
     2. Password and Authentication: All team members must utilize multi-factor authentication (MFA) with biometric or authenticator app keys. SMS-based 2FA is prohibited for core database access. Passwords must contain a minimum of 16 characters.
     3. Data Classification: Data is categorized into Public, Internal, Confidential, and Restricted. Restricted data contains Personally Identifiable Information (PII) and must remain encrypted at rest and in transit using AES-256 standards.

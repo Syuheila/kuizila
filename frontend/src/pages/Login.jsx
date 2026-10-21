@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
-import LoomiLogo from '../components/LoomiLogo';
+import KuizilaLogo from '../components/KuizilaLogo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export default function Login() {
         {/* Brand Header */}
         <div className="auth-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ marginBottom: '16px' }}>
-            <LoomiLogo to="/" size="lg" />
+            <KuizilaLogo to="/" size="lg" />
           </div>
           <h1 className="auth-title">Trainer Sign In</h1>
           <p className="auth-subtitle">Sign in to manage quizzes and host live sessions</p>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
-import LoomiLogo from '../components/LoomiLogo';
+import KuizilaLogo from '../components/KuizilaLogo';
 import { api } from '../services/api';
 
 export default function SignUp() {
@@ -79,7 +79,7 @@ export default function SignUp() {
         {/* Brand Header */}
         <div className="auth-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ marginBottom: '16px' }}>
-            <LoomiLogo to="/" size="lg" />
+            <KuizilaLogo to="/" size="lg" />
           </div>
           <h1 className="auth-title">Create Trainer Account</h1>
           <p className="auth-subtitle">Sign up to create and host interactive live quizzes</p>

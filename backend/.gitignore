@@ -17,6 +17,7 @@ env/
 *.sqlite
 *.sqlite3
 loomi.db*
+kuizila.db*
 uploads/*
 !uploads/.gitkeep
 *.log

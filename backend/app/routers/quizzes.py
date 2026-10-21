@@ -12,7 +12,7 @@ from ..schemas import (
 from .auth import require_admin_role, require_authenticated_user, get_optional_user
 from ..services.pdf_service import generate_quiz_pdf, sanitize_filename
 
-logger = logging.getLogger("loomi_quizzes")
+logger = logging.getLogger("kuizila_quizzes")
 
 router = APIRouter(prefix="/api/quizzes", tags=["quizzes"])
 

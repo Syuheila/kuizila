@@ -63,7 +63,7 @@ export default function Leaderboard({ standings = [], teamStandings = [], showPo
             return (
               <div
                 key={t.team_id || idx}
-                className="loomi-card"
+                className="kuizila-card"
                 style={{
                   padding: '18px 24px',
                   borderLeft: `6px solid ${t.team_color || 'var(--color-teal)'}`,
@@ -261,7 +261,7 @@ export default function Leaderboard({ standings = [], teamStandings = [], showPo
           )}
 
           {/* Leaderboard Table List */}
-          <div className="loomi-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="kuizila-card" style={{ padding: 0, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ backgroundColor: '#0F172A', borderBottom: '1px solid var(--border-subtle)' }}>

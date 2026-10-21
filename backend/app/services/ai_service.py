@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional, Set
 from ..config import OLLAMA_BASE_URL, OLLAMA_MODEL, OLLAMA_FALLBACK_MODEL
 import logging
 
-logger = logging.getLogger("loomi_ai")
+logger = logging.getLogger("kuizila_ai")
 
 async def check_ollama_health() -> Dict[str, Any]:
     """Checks if Ollama is running and reports model availability."""
@@ -241,7 +241,7 @@ def validate_and_normalize_ai_questions(
         correct_text = {"A": opt_a, "B": opt_b, "C": opt_c, "D": opt_d}[correct_key]
         explanation = str(q.get("explanation", "")).strip() or "Clear educational rationale."
 
-        loomi_q = {
+        kuizila_q = {
             "id": f"{id_prefix}_{start_index + len(validated_questions)}",
             "question_type": "multiple_choice",
             "question_text": q_text,
@@ -258,7 +258,7 @@ def validate_and_normalize_ai_questions(
             "default_time_limit": 30,
             "default_points": 100
         }
-        validated_questions.append(loomi_q)
+        validated_questions.append(kuizila_q)
         seen_questions.add(normalized_q_key)
 
         if len(validated_questions) >= requested_count:

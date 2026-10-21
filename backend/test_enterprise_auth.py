@@ -39,7 +39,7 @@ def test_auth():
     print("=== Testing Enterprise Authentication & Roles ===")
     # 1. Admin Login (Single Administrator: Suhailah Desa)
     admin_login = post_json("/api/auth/login", {
-        "email": "admin@loomi.com",
+        "email": "admin@kuizila.com",
         "password": "password123"
     })
     assert admin_login["status"] == "success"
@@ -62,7 +62,7 @@ def test_auth():
 
     # 3. Test /api/auth/me with tokens
     me_admin = get_json("/api/auth/me", token=admin_token)
-    assert me_admin["email"] == "admin@loomi.com"
+    assert me_admin["email"] == "admin@kuizila.com"
     assert me_admin["name"] == "Suhailah Desa"
     print("✓ Authenticated /api/auth/me verified for Admin")
 

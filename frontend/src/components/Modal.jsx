@@ -30,7 +30,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 640
       padding: 12
     }}>
       <div
-        className="loomi-card modal-card"
+        className="kuizila-card modal-card"
         style={{
           width: '100%',
           maxWidth,

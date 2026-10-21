@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Check
 } from 'lucide-react';
-import LoomiLogo from '../components/LoomiLogo';
+import KuizilaLogo from '../components/KuizilaLogo';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -77,7 +77,7 @@ export default function LandingPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <LoomiLogo to="/" size="md" />
+          <KuizilaLogo to="/" size="md" />
           <nav className="landing-nav" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <a href="#capabilities" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#94A3B8' }}>
               Capabilities
@@ -437,7 +437,7 @@ export default function LandingPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 8 }}>
-          <LoomiLogo to="/" size="sm" />
+          <KuizilaLogo to="/" size="sm" />
           <span>• Interactive Quiz & Response Collection Platform</span>
         </div>
         <div>

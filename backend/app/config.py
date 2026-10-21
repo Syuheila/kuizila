@@ -8,8 +8,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR.parent / ".env")
 
-DB_PATH = BASE_DIR / "loomi.db"
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+DB_PATH = (BASE_DIR / "kuizila.db") if (BASE_DIR / "kuizila.db").exists() else (BASE_DIR / "loomi.db")
+raw_db_url = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+if raw_db_url.startswith("sqlite:///./"):
+    rel_name = raw_db_url.replace("sqlite:///./", "")
+    DATABASE_URL = f"sqlite:///{(BASE_DIR / rel_name).resolve()}"
+else:
+    DATABASE_URL = raw_db_url
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma4:latest")

@@ -138,7 +138,7 @@ def download_session_csv(
     try:
         report_data = generate_session_report_data(db, session_id)
         csv_content = export_session_csv(report_data)
-        filename = f"loomi_report_{report_data.get('session_code', 'session')}.csv"
+        filename = f"kuizila_report_{report_data.get('session_code', 'session')}.csv"
         
         return Response(
             content=csv_content,

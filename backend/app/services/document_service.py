@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, List
 
 import logging
 
-logger = logging.getLogger("loomi_document")
+logger = logging.getLogger("kuizila_document")
 
 MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB
 ALLOWED_EXTENSIONS = {".pdf", ".pptx", ".ppt", ".docx", ".txt"}

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { KeyRound, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { sound } from '../utils/sound';
-import LoomiLogo from '../components/LoomiLogo';
+import KuizilaLogo from '../components/KuizilaLogo';
 
 export default function JoinQuiz() {
   const navigate = useNavigate();
@@ -36,8 +36,8 @@ export default function JoinQuiz() {
       sound.playJoin();
       const res = await api.joinSession(code, name);
 
-      sessionStorage.setItem(`loomi_session_${res.session_code}_pid`, String(res.id));
-      sessionStorage.setItem(`loomi_session_${res.session_code}_name`, res.display_name);
+      sessionStorage.setItem(`kuizila_session_${res.session_code}_pid`, String(res.id));
+      sessionStorage.setItem(`kuizila_session_${res.session_code}_name`, res.display_name);
 
       navigate(`/live/participant/${res.session_code}?pid=${res.id}&name=${encodeURIComponent(res.display_name)}`);
     } catch (err) {
@@ -72,7 +72,7 @@ export default function JoinQuiz() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
           <div style={{ marginBottom: '14px' }}>
-            <LoomiLogo to="/" size="lg" />
+            <KuizilaLogo to="/" size="lg" />
           </div>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F8FAFC', marginBottom: '6px' }}>
             Join Quiz

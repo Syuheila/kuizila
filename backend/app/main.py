@@ -9,7 +9,7 @@ from .websocket.manager import ws_manager
 from .routers import quizzes, questions, sessions, participants, reports, ai, auth
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("loomi")
+logger = logging.getLogger("kuizila")
 
 # Ensure schema compatibility and initialize database tables
 ensure_schema_compatibility(engine)
@@ -102,17 +102,17 @@ else:
     def root():
         return {
             "status": "online",
-            "service": "Loomi Backend API",
+            "service": "Kuizila Backend API",
             "docs_url": "/docs",
             "frontend_url": "http://localhost:5173",
-            "message": "Loomi API is running. Access interactive API documentation at /docs or open the frontend application on http://localhost:5173."
+            "message": "Kuizila API is running. Access interactive API documentation at /docs or open the frontend application on http://localhost:5173."
         }
 
 @app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
-        "service": "Loomi API",
+        "service": "Kuizila API",
         "version": "1.0.0"
     }
 

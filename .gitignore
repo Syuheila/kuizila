@@ -1,5 +1,5 @@
 # ==============================================================================
-# Loomi Interactive Quiz & Learning Platform — Git Ignore Configuration
+# Kuizila Interactive Quiz & Learning Platform — Git Ignore Configuration
 # ==============================================================================
 
 # Environment variables & secrets
@@ -35,6 +35,7 @@ eggs/
 *.sqlite
 *.sqlite3
 backend/loomi.db*
+backend/kuizila.db*
 
 # Temporary & Uploaded Files
 backend/uploads/*

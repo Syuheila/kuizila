@@ -97,7 +97,7 @@ export default function QuizLibrary() {
       setExportingPdf(true);
       setExportError('');
       const clean = (quiz.title || 'quiz').toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 35);
-      const filename = includeAnswers ? `loomi_${clean}_answer_key.pdf` : `loomi_${clean}_quiz.pdf`;
+      const filename = includeAnswers ? `kuizila_${clean}_answer_key.pdf` : `kuizila_${clean}_quiz.pdf`;
       await api.exportQuizPDF(quiz.id, includeAnswers, filename);
       setExportModalQuiz(null);
     } catch (err) {

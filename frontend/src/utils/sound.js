@@ -1,10 +1,10 @@
-// Web Audio API Synthesizer for Loomi
+// Web Audio API Synthesizer for Kuizila
 // 100% offline, zero external audio asset dependencies, crisp low-latency sound effects
 
 class SoundEngine {
   constructor() {
     this.ctx = null;
-    this.muted = localStorage.getItem("loomi_sound_muted") === "true";
+    this.muted = (localStorage.getItem("kuizila_sound_muted") || localStorage.getItem("loomi_sound_muted")) === "true";
     this.musicAudio = null;
     this.currentTrack = null; // 'lobby' | 'gameplay' | null
     this.desiredTrack = null; // remembers what should be playing if blocked by browser autoplay
@@ -70,7 +70,7 @@ class SoundEngine {
     if (this.isAutoplayBlocked) {
       this.muted = false;
       this.isAutoplayBlocked = false;
-      localStorage.setItem("loomi_sound_muted", "false");
+      localStorage.setItem("kuizila_sound_muted", "false"); localStorage.setItem("loomi_sound_muted", "false");
       if (this.desiredTrack === 'lobby') {
         this.playLobbyMusic();
       } else if (this.desiredTrack === 'gameplay') {
@@ -86,7 +86,7 @@ class SoundEngine {
     }
 
     this.muted = !this.muted;
-    localStorage.setItem("loomi_sound_muted", this.muted ? "true" : "false");
+    localStorage.setItem("kuizila_sound_muted", this.muted ? "true" : "false"); localStorage.setItem("loomi_sound_muted", this.muted ? "true" : "false");
     if (this.muted) {
       if (this.musicAudio) {
         this.musicAudio.pause();
@@ -135,11 +135,11 @@ class SoundEngine {
           .catch((err) => {
             this.isAutoplayBlocked = true;
             this.notify();
-            console.warn('[Loomi Sound] Lobby autoplay blocked. Music will start on user click/touch:', err.message);
+            console.warn('[Kuizila Sound] Lobby autoplay blocked. Music will start on user click/touch:', err.message);
           });
       }
     } catch (e) {
-      console.warn('[Loomi Sound] Could not play lobby soundtrack:', e);
+      console.warn('[Kuizila Sound] Could not play lobby soundtrack:', e);
     }
   }
 
@@ -172,11 +172,11 @@ class SoundEngine {
           .catch((err) => {
             this.isAutoplayBlocked = true;
             this.notify();
-            console.warn('[Loomi Sound] Gameplay autoplay blocked. Music will start on user click/touch:', err.message);
+            console.warn('[Kuizila Sound] Gameplay autoplay blocked. Music will start on user click/touch:', err.message);
           });
       }
     } catch (e) {
-      console.warn('[Loomi Sound] Could not play gameplay soundtrack:', e);
+      console.warn('[Kuizila Sound] Could not play gameplay soundtrack:', e);
     }
   }
 

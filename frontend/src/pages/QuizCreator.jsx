@@ -416,7 +416,7 @@ export default function QuizCreator() {
       setExportingPdf(true);
       setExportError('');
       const cleanTitle = (title || 'quiz').toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 35);
-      const filename = includeAnswers ? `loomi_${cleanTitle}_answer_key.pdf` : `loomi_${cleanTitle}_quiz.pdf`;
+      const filename = includeAnswers ? `kuizila_${cleanTitle}_answer_key.pdf` : `kuizila_${cleanTitle}_quiz.pdf`;
       await api.exportQuizPDF(editId, includeAnswers, filename);
       setPdfModalOpen(false);
     } catch (err) {
@@ -1144,7 +1144,7 @@ export default function QuizCreator() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           
           {/* Card 1: Quiz Information */}
-          <div className="loomi-card" style={{ padding: '20px 22px' }}>
+          <div className="kuizila-card" style={{ padding: '20px 22px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 14, color: '#F8FAFC' }}>
               1. Quiz Information
             </h3>
@@ -1210,7 +1210,7 @@ export default function QuizCreator() {
           </div>
 
           {/* Card 2: Interactive Game Settings */}
-          <div className="loomi-card" style={{ padding: '20px 22px' }}>
+          <div className="kuizila-card" style={{ padding: '20px 22px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 14, color: '#F8FAFC' }}>
               2. Interactive Game Settings
             </h3>
@@ -1288,7 +1288,7 @@ export default function QuizCreator() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           
           {/* Card 3: Creation Methods & Hub */}
-          <div className="loomi-card" style={{ padding: '20px 22px' }}>
+          <div className="kuizila-card" style={{ padding: '20px 22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC' }}>
@@ -1883,7 +1883,7 @@ export default function QuizCreator() {
           </div>
 
           {/* ================= QUESTION EDITOR & REVIEW LIST ================= */}
-          <div className="loomi-card" style={{ padding: '20px 22px' }}>
+          <div className="kuizila-card" style={{ padding: '20px 22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC' }}>

@@ -95,7 +95,7 @@ export default function Reports() {
   const handleExportCSV = async () => {
     if (!selectedSessionId) return;
     try {
-      await api.downloadReportCSV(selectedSessionId, `loomi_report_${report?.session_code || 'session'}.csv`);
+      await api.downloadReportCSV(selectedSessionId, `kuizila_report_${report?.session_code || 'session'}.csv`);
     } catch (err) {
       alert(`CSV Export failed: ${err.message}`);
     }
@@ -217,7 +217,7 @@ export default function Reports() {
           Loading performance analytics...
         </div>
       ) : !hasSessions ? (
-        <div className="loomi-card" style={{ textAlign: 'center', padding: '56px 20px', backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+        <div className="kuizila-card" style={{ textAlign: 'center', padding: '56px 20px', backgroundColor: '#1E293B', border: '1px solid #334155' }}>
           <BarChart3 size={44} style={{ margin: '0 auto 12px', color: '#94A3B8' }} />
           <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '8px' }}>
             No analytics yet
@@ -231,7 +231,7 @@ export default function Reports() {
           </Link>
         </div>
       ) : !report ? (
-        <div className="loomi-card" style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+        <div className="kuizila-card" style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: '#1E293B', border: '1px solid #334155' }}>
           <h3 style={{ color: '#F8FAFC' }}>No Session Selected</h3>
           <p style={{ color: '#94A3B8' }}>Please select a quiz session above to view its analytics.</p>
         </div>
@@ -274,7 +274,7 @@ export default function Reports() {
           </div>
 
           {/* Question Accuracy Chart */}
-          <div className="loomi-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+          <div className="kuizila-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC' }}>
@@ -312,7 +312,7 @@ export default function Reports() {
           </div>
 
           {/* Participant Performance Ranking Table */}
-          <div className="loomi-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+          <div className="kuizila-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC' }}>
@@ -397,7 +397,7 @@ export default function Reports() {
           </div>
 
           {/* Granular Participant Responses Drilldown */}
-          <div className="loomi-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+          <div className="kuizila-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F8FAFC' }}>
@@ -484,7 +484,7 @@ export default function Reports() {
           </div>
 
           {/* Detailed Question Analytics Section */}
-          <div className="loomi-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
+          <div className="kuizila-card" style={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: 16, color: '#F8FAFC' }}>
               Detailed Question Analytics
             </h3>

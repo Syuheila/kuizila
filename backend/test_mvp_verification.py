@@ -11,7 +11,7 @@ from app.services.ai_service import (
 )
 
 def run_all_tests():
-    print("=== STARTING LOOMI MVP VERIFICATION TESTS ===")
+    print("=== STARTING KUIZILA MVP VERIFICATION TESTS ===")
     client = TestClient(app)
 
     # -------------------------------------------------------------
@@ -135,15 +135,15 @@ def run_all_tests():
     db_sess = SessionLocal()
     org = db_sess.query(Organization).first()
     if not org:
-        org = Organization(name="Loomi Platform", slug="loomi-platform", domain="loomi.com")
+        org = Organization(name="Kuizila Platform", slug="kuizila-platform", domain="kuizila.com")
         db_sess.add(org)
         db_sess.commit()
 
-    trainer1 = db_sess.query(User).filter(User.email == "trainer1@loomi.test").first()
+    trainer1 = db_sess.query(User).filter(User.email == "trainer1@kuizila.test").first()
     if not trainer1:
         trainer1 = User(
             name="Trainer One",
-            email="trainer1@loomi.test",
+            email="trainer1@kuizila.test",
             password_hash=hash_password("password123"),
             role="admin",
             organization_id=org.id
@@ -152,11 +152,11 @@ def run_all_tests():
         db_sess.commit()
         db_sess.refresh(trainer1)
 
-    trainer2 = db_sess.query(User).filter(User.email == "trainer2@loomi.test").first()
+    trainer2 = db_sess.query(User).filter(User.email == "trainer2@kuizila.test").first()
     if not trainer2:
         trainer2 = User(
             name="Trainer Two",
-            email="trainer2@loomi.test",
+            email="trainer2@kuizila.test",
             password_hash=hash_password("password123"),
             role="admin",
             organization_id=org.id

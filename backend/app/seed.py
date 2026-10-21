@@ -8,12 +8,12 @@ from .routers.auth import hash_password
 
 def seed_organization_and_users(db: Session):
     """Seed default organization and official trainer admin account."""
-    org = db.query(Organization).filter(Organization.slug == "loomi-demo").first()
+    org = db.query(Organization).filter((Organization.slug == "kuizila-demo") | (Organization.slug == "loomi-demo")).first()
     if not org:
         org = Organization(
-            name="Loomi Platform",
-            slug="loomi-demo",
-            domain="loomi.com"
+            name="Kuizila Platform",
+            slug="kuizila-demo",
+            domain="kuizila.com"
         )
         db.add(org)
         db.flush()
@@ -21,7 +21,7 @@ def seed_organization_and_users(db: Session):
     pwd_hash = hash_password("password123")
 
     user_accounts = [
-        {"name": "Suhailah Desa", "email": "admin@loomi.com", "role": "admin", "department": "Training", "job_title": "Platform Lead"},
+        {"name": "Suhailah Desa", "email": "admin@kuizila.com", "role": "admin", "department": "Training", "job_title": "Platform Lead"},
     ]
 
     for usr in user_accounts:

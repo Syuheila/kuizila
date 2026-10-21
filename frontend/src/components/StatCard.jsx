@@ -11,7 +11,7 @@ export default function StatCard({ title, value, subtitle, icon: Icon, color = '
   const currentTheme = colorMap[color] || colorMap.teal;
 
   return (
-    <div className="loomi-card loomi-card-interactive" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="kuizila-card kuizila-card-interactive" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>
           {title}

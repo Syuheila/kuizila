@@ -2,7 +2,7 @@ import React from 'react';
 import { Crown, Flame, Shield, Skull } from 'lucide-react';
 
 /**
- * Loomi Original Modular SVG Avatar Renderer
+ * Kuizila Original Modular SVG Avatar Renderer
  * 100% original vector geometry with customizable base, hair, outfits, accessories, frames, and micro-animations.
  */
 
@@ -178,7 +178,7 @@ export default function Avatar({
 
   return (
     <div
-      className={`loomi-avatar-container ${animate ? 'loomi-avatar-idle' : ''} ${className}`}
+      className={`kuizila-avatar-container ${animate ? 'kuizila-avatar-idle' : ''} ${className}`}
       style={{
         position: 'relative',
         width: size,

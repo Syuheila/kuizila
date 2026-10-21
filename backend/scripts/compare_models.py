@@ -1,5 +1,5 @@
 """
-Loomi Model Comparison Benchmark: Llama 3.2 (3b) vs Gemma 4 (latest)
+Kuizila Model Comparison Benchmark: Llama 3.2 (3b) vs Gemma 4 (latest)
 
 Evaluates and compares both models side-by-side on identical prompts and question counts.
 Criteria evaluated:
@@ -115,7 +115,7 @@ async def benchmark_model(model_name: str, topic: str, count: int, difficulty: s
 
 def print_comparison_table(results: List[Dict[str, Any]]):
     print("\n" + "=" * 80)
-    print("LOOMI AI MODEL BENCHMARK COMPARISON RESULTS")
+    print("KUIZILA AI MODEL BENCHMARK COMPARISON RESULTS")
     print("=" * 80)
 
     header = f"{'Metric':<32} | " + " | ".join(f"{r['model']:<20}" for r in results)
@@ -157,7 +157,7 @@ def print_comparison_table(results: List[Dict[str, Any]]):
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Compare Llama 3.2 and Gemma 4 in Loomi")
+    parser = argparse.ArgumentParser(description="Compare Llama 3.2 and Gemma 4 in Kuizila")
     parser.add_argument("--questions", type=int, default=10, help="Number of questions to test (default: 10)")
     parser.add_argument("--topic", type=str, default="Workplace Cybersecurity Awareness", help="Quiz topic to generate")
     parser.add_argument("--difficulty", type=str, default="medium", help="Quiz difficulty (easy, medium, hard)")

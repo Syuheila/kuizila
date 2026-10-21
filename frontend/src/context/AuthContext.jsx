@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
           if (me && me.id) {
             setUser(me);
             localStorage.setItem('kuizila_user', JSON.stringify(me));
-            localStorage.setItem('loomi_user', JSON.stringify(me));
+            
           }
         } catch (err) {
           console.warn('Session verification failed, clearing saved token:', err);
@@ -51,8 +51,8 @@ export function AuthProvider({ children }) {
       setUser(res.user);
       localStorage.setItem('kuizila_token', res.token);
       localStorage.setItem('kuizila_user', JSON.stringify(res.user));
-      localStorage.setItem('loomi_token', res.token);
-      localStorage.setItem('loomi_user', JSON.stringify(res.user));
+      
+      
       return res.user;
     }
     throw new Error('Invalid login response from server');
@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
     setUser((prev) => {
       const updated = { ...prev, ...updatedFields };
       localStorage.setItem('kuizila_user', JSON.stringify(updated));
-      localStorage.setItem('loomi_user', JSON.stringify(updated));
+      
       return updated;
     });
   };

@@ -65,7 +65,7 @@ def run_tests():
     req = urllib.request.urlopen(f'{base}/reports/sessions/{sess_id}/csv')
     csv_bytes = req.read()
     print(f'9. CSV Report generated: {len(csv_bytes)} bytes downloaded.')
-    assert b'LOOMI EMPLOYEE QUIZ REPORT' in csv_bytes
+    assert b'KUIZILA EMPLOYEE QUIZ REPORT' in csv_bytes
 
     # 10. AI Health check
     req = urllib.request.urlopen(f'{base}/ai/health')

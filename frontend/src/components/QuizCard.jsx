@@ -20,7 +20,7 @@ export default function QuizCard({ quiz, onStartLive, onStartBattle, onEdit, onD
   const settings = quiz.settings || {};
 
   return (
-    <div className="loomi-card loomi-card-interactive" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="kuizila-card kuizila-card-interactive" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Top Meta Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <span className="badge badge-teal">

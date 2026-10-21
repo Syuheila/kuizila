@@ -1,7 +1,7 @@
 ====================================================================================================
-LOOMI ENTERPRISE KNOWLEDGE ASSESSMENT PLATFORM - SCREENSHOT INDEX & VERIFICATION LOG
+KUIZILA ENTERPRISE KNOWLEDGE ASSESSMENT PLATFORM - SCREENSHOT INDEX & VERIFICATION LOG
 ====================================================================================================
-Project: Loomi AI-Powered Employee Quiz & Knowledge Assessment Application
+Project: Kuizila AI-Powered Employee Quiz & Knowledge Assessment Application
 Author: Suhailah Desa (Industrial Training Project Documentation)
 Date: September 2026
 Viewport: 1440 x 900 (Desktop Enterprise Display)
@@ -14,7 +14,7 @@ CATEGORY 1: GENERAL & AUTHENTICATION WORKFLOWS (docs/screenshots/01_general/)
 ----------------------------------------------------------------------------------------------------
 
 1. Filename: docs/screenshots/01_general/01_Landing_Page.png
-   Page Name: Loomi Enterprise Landing Page
+   Page Name: Kuizila Enterprise Landing Page
    User Type: Public / Unauthenticated
    Functionality Proved:
      - Hero branding presentation with value proposition ("Interactive Employee Engagement & AI Assessment").
@@ -29,7 +29,7 @@ CATEGORY 1: GENERAL & AUTHENTICATION WORKFLOWS (docs/screenshots/01_general/)
    Functionality Proved:
      - Secure credentials input form with email and masked password validation.
      - Role-based access control (RBAC) entry gate protecting admin routes.
-     - Organization contextual badge ("Loomi Demo Company") and security safeguards.
+     - Organization contextual badge ("Kuizila Demo Company") and security safeguards.
      - Enterprise authentication feedback, remember me toggle, and self-service password recovery link.
 
 ----------------------------------------------------------------------------------------------------

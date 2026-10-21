@@ -5,7 +5,7 @@ const BASE_URL = API_HOST ? `${API_HOST.replace(/\/+$/, '')}/api` : '/api';
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
-  const token = localStorage.getItem('loomi_token');
+  const token = localStorage.getItem('kuizila_token') || localStorage.getItem('loomi_token');
   const isFormData = options.body instanceof FormData;
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
@@ -66,7 +66,7 @@ export const api = {
     const downloadUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = filename || (includeAnswers ? `loomi_quiz_${quizId}_answer_key.pdf` : `loomi_quiz_${quizId}.pdf`);
+    link.download = filename || (includeAnswers ? `kuizila_quiz_${quizId}_answer_key.pdf` : `kuizila_quiz_${quizId}.pdf`);
     document.body.appendChild(link);
     link.click();
     link.remove();

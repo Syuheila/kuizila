@@ -19,10 +19,10 @@ import {
   Lightbulb,
   Target
 } from 'lucide-react';
-import LoomiLogo from '../components/LoomiLogo';
+import KuizilaLogo from '../components/KuizilaLogo';
 import Modal from '../components/Modal';
 import SoundToggle from '../components/SoundToggle';
-import { LoomiSocket } from '../services/websocket';
+import { KuizilaSocket } from '../services/websocket';
 import { api } from '../services/api';
 import { sound } from '../utils/sound';
 
@@ -99,7 +99,7 @@ export default function LiveHost() {
   useEffect(() => {
     if (!session?.session_code) return;
 
-    const socket = new LoomiSocket(session.session_code, 'host', null, 'Host', (event) => {
+    const socket = new KuizilaSocket(session.session_code, 'host', null, 'Host', (event) => {
       console.log('[Host WS]', event);
       if (event.event === 'PARTICIPANT_JOINED') {
         sound.playJoin();
@@ -164,7 +164,7 @@ export default function LiveHost() {
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <LoomiLogo to="/" size="md" />
+          <KuizilaLogo to="/" size="md" />
           <span className="badge-pill brand" style={{ fontSize: '0.78rem' }}>Host Monitoring Room</span>
         </div>
 

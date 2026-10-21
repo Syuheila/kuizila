@@ -17,10 +17,10 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 # Active tokens cache & revocation set
 ACTIVE_TOKENS: Dict[str, Dict[str, Any]] = {}
 REVOKED_TOKENS = set()
-LOOMI_SECRET_KEY = os.environ.get("LOOMI_SECRET_KEY", "loomi_enterprise_secret_key_2026")
+KUIZILA_SECRET_KEY = os.environ.get("KUIZILA_SECRET_KEY", os.environ.get("LOOMI_SECRET_KEY", "kuizila_enterprise_secret_key_2026"))
 
 def sign_payload(payload_str: str) -> str:
-    return hmac.new(LOOMI_SECRET_KEY.encode(), payload_str.encode(), hashlib.sha256).hexdigest()
+    return hmac.new(KUIZILA_SECRET_KEY.encode(), payload_str.encode(), hashlib.sha256).hexdigest()
 
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)
@@ -44,7 +44,7 @@ def create_session_token(user: User, remember_me: bool = False) -> str:
     nonce = secrets.token_hex(8)
     raw_payload = f"{user.id}:{exp_ts}:{user.role}:{nonce}"
     sig = sign_payload(raw_payload)
-    token = f"loomi_tok_{user.id}_{exp_ts}_{nonce}_{sig}"
+    token = f"kuizila_tok_{user.id}_{exp_ts}_{nonce}_{sig}"
     ACTIVE_TOKENS[token] = {
         "user_id": user.id,
         "email": user.email,
@@ -71,9 +71,9 @@ def get_current_user(authorization: Optional[str] = Header(None), db: Session = 
             return user
 
     # Recover signed token across server restarts
-    if token.startswith("loomi_tok_"):
+    if token.startswith("kuizila_tok_") or token.startswith("loomi_tok_"):
         parts = token.split("_")
-        # Format: loomi_tok_<user_id>_<exp_ts>_<nonce>_<sig>
+        # Format: kuizila_tok_<user_id>_<exp_ts>_<nonce>_<sig>
         if len(parts) == 6:
             _, _, uid_str, exp_str, nonce, sig = parts
             try:
@@ -156,7 +156,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     # Ensure default organization exists
     org = db.query(Organization).first()
     if not org:
-        org = Organization(name="Loomi Platform", slug="loomi-platform", domain="loomi.com")
+        org = Organization(name="Kuizila Platform", slug="kuizila-platform", domain="kuizila.com")
         db.add(org)
         db.flush()
 
@@ -168,7 +168,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         name=name,
         email=email,
         password_hash=password_hash,
-        role="admin",  # In Loomi MVP, every registered account is a Trainer (admin)
+        role="admin",  # In Kuizila MVP, every registered account is a Trainer (admin)
         organization_id=org.id,
         department="Training",
         job_title="Trainer",
@@ -226,7 +226,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if not org:
         org = db.query(Organization).first()
         if not org:
-            org = Organization(name="Loomi Platform", slug="loomi-platform", domain="loomi.com")
+            org = Organization(name="Kuizila Platform", slug="kuizila-platform", domain="kuizila.com")
             db.add(org)
             db.flush()
         user.organization_id = org.id

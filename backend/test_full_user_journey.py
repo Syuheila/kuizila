@@ -19,7 +19,7 @@ from app.routers.auth import ACTIVE_TOKENS
 
 def test_complete_user_journey():
     print("=" * 70)
-    print("LOOMI COMPREHENSIVE END-TO-END QUALITY CONTROL & JOURNEY TEST")
+    print("KUIZILA COMPREHENSIVE END-TO-END QUALITY CONTROL & JOURNEY TEST")
     print("=" * 70)
 
     # 0. Initialize & Seed DB
@@ -38,26 +38,26 @@ def test_complete_user_journey():
     print("\n[STEP 2] Verifying Standard Demo Credentials...")
     # Admin demo
     admin_login_resp = client.post("/api/auth/login", json={
-        "email": "admin@loomidemo.com",
+        "email": "admin@kuizilademo.com",
         "password": "password123"
     })
     assert admin_login_resp.status_code == 200, f"Admin demo login failed: {admin_login_resp.text}"
     admin_auth = admin_login_resp.json()
     admin_token = admin_auth["token"]
     assert admin_auth["user"]["role"] == "admin"
-    assert admin_auth["user"]["email"] == "admin@loomidemo.com"
+    assert admin_auth["user"]["email"] == "admin@kuizilademo.com"
     print(f"✓ Admin demo login successful: {admin_auth['user']['name']} ({admin_auth['user']['email']})")
 
     # Employee demo
     emp_login_resp = client.post("/api/auth/login", json={
-        "email": "employee@loomidemo.com",
+        "email": "employee@kuizilademo.com",
         "password": "password123"
     })
     assert emp_login_resp.status_code == 200, f"Employee demo login failed: {emp_login_resp.text}"
     emp_auth = emp_login_resp.json()
     emp_token = emp_auth["token"]
     assert emp_auth["user"]["role"] == "employee"
-    assert emp_auth["user"]["email"] == "employee@loomidemo.com"
+    assert emp_auth["user"]["email"] == "employee@kuizilademo.com"
     print(f"✓ Employee demo login successful: {emp_auth['user']['name']} ({emp_auth['user']['email']})")
 
     # Company email aliases

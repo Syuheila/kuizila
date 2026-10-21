@@ -1,4 +1,4 @@
-/* Loomi Platform Design System - Modern Dark-Mode SaaS with Controlled Vibrant Accents */
+/* Kuizila Platform Design System - Modern Dark-Mode SaaS with Controlled Vibrant Accents */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 :root {
@@ -288,7 +288,7 @@ input:focus, select:focus, textarea:focus {
 /* ==========================================================================
    CARDS & CONTAINERS (INTERACTIVE)
    ========================================================================== */
-.enterprise-card, .loomi-card {
+.enterprise-card, .loomi-card, .kuizila-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -297,16 +297,16 @@ input:focus, select:focus, textarea:focus {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.enterprise-card:hover, .loomi-card:hover {
+.enterprise-card:hover, .loomi-card:hover, .kuizila-card:hover {
   border-color: var(--border-medium);
 }
 
-.enterprise-card-interactive, .loomi-card-interactive {
+.enterprise-card-interactive, .loomi-card-interactive, .kuizila-card-interactive {
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.enterprise-card-interactive:hover, .loomi-card-interactive:hover {
+.enterprise-card-interactive:hover, .loomi-card-interactive:hover, .kuizila-card-interactive:hover {
   transform: translateY(-3px);
   border-color: rgba(6, 182, 212, 0.5);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 16px rgba(6, 182, 212, 0.2);
@@ -1120,7 +1120,7 @@ input:focus, select:focus, textarea:focus {
   50% { transform: translateY(-5px); }
 }
 
-.loomi-avatar-idle {
+.loomi-avatar-idle, .kuizila-avatar-idle {
   animation: avatarFloat 2.8s ease-in-out infinite;
 }
 
@@ -1129,7 +1129,7 @@ input:focus, select:focus, textarea:focus {
   50% { transform: scale(1.1) translateY(-8px); }
 }
 
-.loomi-avatar-celebrate {
+.loomi-avatar-celebrate, .kuizila-avatar-celebrate {
   animation: celebrationHop 0.6s ease infinite;
 }
 

@@ -11,9 +11,9 @@ import {
   ArrowRight
 } from 'lucide-react';
 import Timer from '../components/Timer';
-import LoomiLogo from '../components/LoomiLogo';
+import KuizilaLogo from '../components/KuizilaLogo';
 import SoundToggle from '../components/SoundToggle';
-import { LoomiSocket } from '../services/websocket';
+import { KuizilaSocket } from '../services/websocket';
 import { api } from '../services/api';
 import { sound } from '../utils/sound';
 
@@ -23,11 +23,11 @@ export default function LiveParticipant() {
   const navigate = useNavigate();
 
   const participantId = Number(
-    searchParams.get('pid') || sessionStorage.getItem(`loomi_session_${code}_pid`)
+    searchParams.get('pid') || sessionStorage.getItem(`kuizila_session_${code}_pid`) || sessionStorage.getItem(`kuizila_session_${code}_pid`)
   );
   const displayName =
     searchParams.get('name') ||
-    sessionStorage.getItem(`loomi_session_${code}_name`) ||
+    sessionStorage.getItem(`kuizila_session_${code}_name`) || sessionStorage.getItem(`kuizila_session_${code}_name`) ||
     'Participant';
 
   const [state, setState] = useState(null);
@@ -109,7 +109,7 @@ export default function LiveParticipant() {
   useEffect(() => {
     if (!code || !participantId) return;
 
-    const socket = new LoomiSocket(code, 'participant', participantId, displayName, (event) => {
+    const socket = new KuizilaSocket(code, 'participant', participantId, displayName, (event) => {
       console.log('[Participant WS]', event);
       if (event.event === 'SESSION_STARTED') {
         sound.playBattleStart();
@@ -337,7 +337,7 @@ export default function LiveParticipant() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LoomiLogo to="/" size="sm" />
+          <KuizilaLogo to="/" size="sm" />
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8', letterSpacing: '0.05em' }}>
             PIN: {code}
           </span>

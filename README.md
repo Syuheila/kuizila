@@ -1,8 +1,8 @@
-# Loomi — Interactive Quiz & Learning Platform
+# Kuizila — Interactive Quiz & Learning Platform
 
-> **Important**: This is currently the **local development version** of Loomi. Public deployment and production hosting have not been configured yet.
+> **Important**: This is currently the **local development version** of Kuizila. Public deployment and production hosting have not been configured yet.
 
-Loomi is an interactive, web-based quiz and corporate learning application designed for trainers, educators, and organizations. It provides live multiplayer quizzes with self-paced independent participant progression, grounded AI assistance, comprehensive analytics, and 100% private local AI integration via Ollama.
+Kuizila is an interactive, web-based quiz and corporate learning application designed for trainers, educators, and organizations. It provides live multiplayer quizzes with self-paced independent participant progression, grounded AI assistance, comprehensive analytics, and 100% private local AI integration via Ollama.
 
 ---
 
@@ -10,8 +10,8 @@ Loomi is an interactive, web-based quiz and corporate learning application desig
 
 * **Frontend**: React 18, Vite, React Router 6, Lucide Icons, Recharts, Canvas-Confetti
 * **Backend**: Python 3.10+, FastAPI, Uvicorn, SQLAlchemy 2.0, WebSockets
-* **Database**: SQLite (`loomi.db`) with Write-Ahead Logging (WAL) and foreign keys enabled
-* **Local AI Engine**: Ollama running `qwen3:8b` (with automatic fallback to `llama3.2:3b`) at `http://localhost:11434`
+* **Database**: SQLite (`kuizila.db`) with Write-Ahead Logging (WAL) and foreign keys enabled
+* **Local AI Engine**: Ollama running `qwen3:8b` (with automatic fallback to `llama3.2:3b` / `gemma4:latest`) at `http://localhost:11434`
 * **Document & PDF Processing**: PyMuPDF (`fitz`), `python-docx`, `python-pptx`, `olefile`, ReportLab
 * **Authentication**: PBKDF2-HMAC-SHA256 password hashing with signed HMAC-SHA256 session tokens
 
@@ -28,7 +28,7 @@ Ensure the following tools are installed on your local development machine:
 ---
 
 ### 2. Ollama Local AI Setup
-Loomi runs completely private, local AI generation and document chat via Ollama.
+Kuizila runs completely private, local AI generation and document chat via Ollama.
 
 1. Install and start the Ollama service:
    ```bash
@@ -98,7 +98,7 @@ Loomi runs completely private, local AI generation and document chat via Ollama.
    ```bash
    npm run dev
    ```
-   * The Loomi web interface will be accessible at: `http://localhost:5173`
+   * The Kuizila web interface will be accessible at: `http://localhost:5173`
 
 ---
 
@@ -107,7 +107,7 @@ Loomi runs completely private, local AI generation and document chat via Ollama.
 When the backend starts for the first time, an initial trainer account is automatically created:
 
 * **Role**: Lead Trainer / Admin
-* **Email**: `admin@loomi.com`
+* **Email**: `admin@kuizila.com`
 * **Password**: `password123`
 
 You can also register new trainer accounts on the Sign-Up page (`/signup`).
@@ -118,7 +118,7 @@ You can also register new trainer accounts on the Sign-Up page (`/signup`).
 
 1. **Trainer Authentication**:
    - Navigate to `http://localhost:5173/login`.
-   - Log in using `admin@loomi.com` / `password123` or register a new trainer account.
+   - Log in using `admin@kuizila.com` / `password123` or register a new trainer account.
 2. **Create a Quiz**:
    - Go to `/quizzes/create` to manually author questions with multiple options and correct answers.
    - Use the **AI Generator** tab to auto-generate questions from any topic.
@@ -137,7 +137,7 @@ You can also register new trainer accounts on the Sign-Up page (`/signup`).
 ## Project Structure
 
 ```text
-loomi/
+kuizila/
 ├── backend/
 │   ├── app/
 │   │   ├── routers/        # FastAPI API route handlers (auth, quizzes, sessions, ai, etc.)

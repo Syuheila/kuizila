@@ -1,6 +1,7 @@
-// WebSocket helper for Loomi Live Sessions
+// WebSocket helper for Kuizila Live Sessions
 
-export class LoomiSocket {
+export class KuizilaSocket {
+
   constructor(sessionCode, role, participantId = null, displayName = '', onEvent = null) {
     this.sessionCode = sessionCode ? sessionCode.toUpperCase() : '';
     this.role = role;
@@ -34,7 +35,7 @@ export class LoomiSocket {
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log(`[Loomi WS] Connected to session ${this.sessionCode} as ${this.role}`);
+        console.log(`[Kuizila WS] Connected to session ${this.sessionCode} as ${this.role}`);
         this.reconnectAttempts = 0;
       };
 
@@ -45,12 +46,12 @@ export class LoomiSocket {
             this.onEvent(payload);
           }
         } catch (err) {
-          console.error('[Loomi WS] Failed to parse message', err);
+          console.error('[Kuizila WS] Failed to parse message', err);
         }
       };
 
       this.ws.onclose = () => {
-        console.log('[Loomi WS] Connection closed');
+        console.log('[Kuizila WS] Connection closed');
         if (!this.isClosedManually && this.reconnectAttempts < 5) {
           this.reconnectAttempts++;
           setTimeout(() => this.connect(), 2000);
@@ -58,10 +59,10 @@ export class LoomiSocket {
       };
 
       this.ws.onerror = (err) => {
-        console.warn('[Loomi WS] Error:', err);
+        console.warn('[Kuizila WS] Error:', err);
       };
     } catch (e) {
-      console.error('[Loomi WS] Init failed:', e);
+      console.error('[Kuizila WS] Init failed:', e);
     }
   }
 
@@ -79,3 +80,5 @@ export class LoomiSocket {
     }
   }
 }
+
+export const LoomiSocket = KuizilaSocket;

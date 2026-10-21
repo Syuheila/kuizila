@@ -1,12 +1,12 @@
-# Loomi Platform — Comprehensive Setup & Operations Guide
+# Kuizila Platform — Comprehensive Setup & Operations Guide
 
-This guide details the complete local setup, dependency installation, AI engine configuration, database initialization, and operational workflows for the Loomi Interactive Quiz & Employee Engagement Platform.
+This guide details the complete local setup, dependency installation, AI engine configuration, database initialization, and operational workflows for the Kuizila Interactive Quiz & Employee Engagement Platform.
 
 ---
 
 ## 1. System Prerequisites
 
-Before running Loomi, ensure your development environment has the following installed:
+Before running Kuizila, ensure your development environment has the following installed:
 
 * **Python**: Version 3.10 or higher (`python --version`)
 * **Node.js**: Version 18.0 or higher (`node --version`)
@@ -17,7 +17,7 @@ Before running Loomi, ensure your development environment has the following inst
 
 ## 2. Setting Up Ollama (Local AI Engine)
 
-Loomi uses Ollama to provide 100% private, offline AI question generation without external cloud API dependencies or per-token charges.
+Kuizila uses Ollama to provide 100% private, offline AI question generation without external cloud API dependencies or per-token charges.
 
 1. Install Ollama from [ollama.com/download](https://ollama.com/download).
 2. Start the Ollama background service:
@@ -38,7 +38,7 @@ Loomi uses Ollama to provide 100% private, offline AI question generation withou
 
 ## 3. Backend Setup & Configuration
 
-The backend is built with FastAPI, SQLAlchemy 2.0, and SQLite (`loomi.db`).
+The backend is built with FastAPI, SQLAlchemy 2.0, and SQLite (`kuizila.db`).
 
 ### Step 3.1: Navigate to the Backend Directory
 ```bash
@@ -60,9 +60,9 @@ cp .env.example .env
 *(On Windows PowerShell: `Copy-Item .env.example .env`)*
 
 Review your `.env` settings:
-* `LOOMI_SECRET_KEY`: Cryptographic signing key for session tokens.
+* `KUIZILA_SECRET_KEY`: Cryptographic signing key for session tokens.
 * `OLLAMA_BASE_URL`: Defaults to `http://localhost:11434`.
-* `OLLAMA_MODEL`: Defaults to `llama3.2:3b`.
+* `OLLAMA_MODEL`: Defaults to `llama3.2:3b` or `gemma4:latest`.
 
 ### Step 3.4: Initialize / Reset Clean Database
 To initialize a clean database with the sole administrator account and default badges:
@@ -72,7 +72,7 @@ python -m app.seed
 
 **Single Administrator Credentials:**
 * **Name**: Suhailah Desa
-* **Email**: `admin@loomi.com`
+* **Email**: `admin@kuizila.com`
 * **Password**: `password123`
 * **Role**: `admin` / `owner`
 
@@ -117,7 +117,7 @@ npm run build
 
 ## 5. Core Platform Architecture & Interaction Flow
 
-Loomi operates with Kahoot-style frictionless guest join alongside corporate host capabilities:
+Kuizila operates with Kahoot-style frictionless guest join alongside corporate host capabilities:
 
 ### A. Homepage PIN Join (Zero Friction)
 1. Any participant can visit `http://localhost:5173`.
@@ -163,5 +163,5 @@ curl http://127.0.0.1:8000/api/ai/health
 ```
 Expected response:
 ```json
-{"status": "healthy", "model": "llama3.2:3b", "available": true}
+{"status": "healthy", "model": "gemma4:latest", "available": true}
 ```
