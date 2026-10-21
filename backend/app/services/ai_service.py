@@ -181,7 +181,7 @@ def validate_and_normalize_ai_questions(
     - Options are not duplicated within a question
     - Questions are not duplicated within the batch or across previous chunks
     - Correct answer is A/B/C/D (or matches one of the option texts)
-    - Formats into Loomi question structure with options: [{id, text, is_correct}, ...]
+    - Formats into Kuizila question structure with options: [{id, text, is_correct}, ...]
     """
     validated_questions = []
     seen_questions = set(existing_seen_keys) if existing_seen_keys else set()
@@ -293,7 +293,7 @@ async def generate_quiz_ai(
         context_snippet = f"\nRelevant source material / notes:\n\"\"\"\n{context_text[:3000]}\n\"\"\"\n"
 
     system_prompt = (
-        "You are Loomi's expert training assessment author. "
+        "You are Kuizila's expert training assessment author. "
         "Your task is to generate high-quality multiple-choice questions for training and evaluation. "
         "Avoid unsupported facts. Output ONLY valid raw JSON."
     )
@@ -509,7 +509,7 @@ async def improve_question_ai(
     context_snippet = f"\nRelevant source material:\n\"\"\"\n{material_context[:1500]}\n\"\"\"\n" if material_context else ""
 
     system_prompt = (
-        "You are Loomi's expert question editor and psychometrician. "
+        "You are Kuizila's expert question editor and psychometrician. "
         "Your task is to refine and improve the clarity, grammar, phrasing, and distractor quality of multiple-choice questions. "
         "CRITICAL RULES: "
         "1. Strictly preserve the original learning concept being tested. "
@@ -896,7 +896,7 @@ async def generate_questions_from_material_ai(
     )
 
     system_prompt = (
-        "You are Loomi's expert training assessment author. "
+        "You are Kuizila's expert training assessment author. "
         "Your task is to generate multiple-choice questions based ONLY on the provided learning material. "
         "Do not invent facts. You output ONLY valid raw JSON."
     )
@@ -1124,7 +1124,7 @@ async def chat_with_material_ai(
             history_str = "\nRecent conversation:\n" + "\n".join(lines) + "\n"
 
     system_prompt = (
-        "You are Loomi's learning-material assistant.\n\n"
+        "You are Kuizila's learning-material assistant.\n\n"
         "Answer the user's question using only the provided uploaded material.\n\n"
         "Rules:\n"
         "* Prioritize the provided material.\n"
@@ -1179,7 +1179,7 @@ async def regenerate_question_ai(
     context_snippet = f"\nRelevant source material:\n\"\"\"\n{material_context[:1500]}\n\"\"\"\n" if material_context else ""
 
     system_prompt = (
-        "You are Loomi's master assessment designer. "
+        "You are Kuizila's master assessment designer. "
         "Your task is to regenerate an alternative multiple-choice question that assesses the EXACT SAME core concept, skill, or learning objective as the provided question. "
         "The new question must use a different real-world scenario, fresh question stem, and 4 completely new options (1 correct, 3 plausible distractors). "
         "Output ONLY valid raw JSON."
@@ -1421,7 +1421,7 @@ async def check_quiz_quality_ai(
     context_snippet = f"\nSource Material Reference:\n\"\"\"\n{material_context[:1000]}\n\"\"\"\n" if material_context else ""
 
     system_prompt = (
-        "You are Loomi's Quality Assurance Psychometrician for quizzes. "
+        "You are Kuizila's Quality Assurance Psychometrician for quizzes. "
         "Analyze the questions for clarity, ambiguity, distractor plausibility, and answer validity. "
         "Output ONLY valid raw JSON."
     )
@@ -1518,7 +1518,7 @@ async def generate_study_guide_ai(material_text: str, filename: str = "Material"
     bounded_context = get_context_for_prompt(material_text, max_words=3000)
 
     system_prompt = (
-        "You are Loomi's master educator and curriculum developer. "
+        "You are Kuizila's master educator and curriculum developer. "
         "Create an authoritative, highly organized study guide strictly using the provided learning material. "
         "Do NOT invent external facts not supported by the document. "
         "Output ONLY valid raw JSON."
@@ -1647,7 +1647,7 @@ async def summarize_material_ai(
     instruction = mode_instructions.get(mode, mode_instructions["short"])
 
     system_prompt = (
-        "You are Loomi's learning summarizer. "
+        "You are Kuizila's learning summarizer. "
         "Summarize the provided document accurately without hallucinating facts. "
         "Format your summary in clean Markdown."
     )
@@ -1810,7 +1810,7 @@ async def generate_quiz_insights_ai(session_id: int, db: Any) -> Dict[str, Any]:
         )
 
     system_prompt = (
-        "You are Loomi's Senior Learning Evaluator. "
+        "You are Kuizila's Senior Learning Evaluator. "
         "Analyze empirical quiz performance data to identify learning gaps, diagnose misconceptions, and provide pedagogical recommendations for the trainer. "
         "CRITICAL INSTRUCTION: You must strictly distinguish between empirical FACTS (the numbers provided) and INTERPRETATIONS (hypotheses about learner thinking). Do not invent false participant counts or contradict the data. "
         "Output ONLY valid raw JSON."

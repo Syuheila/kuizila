@@ -45,7 +45,7 @@ class NumberedCanvas(canvas.Canvas):
 
         # Running Header (on pages after page 1)
         if self._pageNumber > 1:
-            self.drawString(36, 11 * inch - 30, "Loomi Quiz Assessment")
+            self.drawString(36, 11 * inch - 30, "Kuizila Quiz Assessment")
             self.setStrokeColor(colors.HexColor("#CBD5E1"))
             self.setLineWidth(0.5)
             self.line(36, 11 * inch - 34, 8.5 * inch - 36, 11 * inch - 34)
@@ -53,7 +53,7 @@ class NumberedCanvas(canvas.Canvas):
         # Running Footer
         page_str = f"Page {self._pageNumber} of {page_count}"
         self.drawRightString(8.5 * inch - 36, 26, page_str)
-        self.drawString(36, 26, "Generated with Loomi AI Quiz Engine")
+        self.drawString(36, 26, "Generated with Kuizila AI Quiz Engine")
         self.setStrokeColor(colors.HexColor("#E2E8F0"))
         self.setLineWidth(0.5)
         self.line(36, 36, 8.5 * inch - 36, 36)
@@ -66,7 +66,7 @@ def sanitize_filename(title: str, is_answer_key: bool = False) -> str:
     clean = re.sub(r'[^a-zA-Z0-9_\- ]', '', title or 'quiz').strip().lower()
     clean = re.sub(r'\s+', '_', clean)[:40]
     suffix = "answer_key" if is_answer_key else "quiz"
-    return f"loomi_{clean}_{suffix}.pdf"
+    return f"kuizila_{clean}_{suffix}.pdf"
 
 
 def validate_quiz_for_pdf_export(quiz) -> List[str]:
@@ -203,7 +203,7 @@ def generate_quiz_pdf(quiz, include_answers: bool = False) -> bytes:
     story = []
 
     # Brand Label
-    story.append(Paragraph("LOOMI ASSESSMENT PLATFORM", brand_style))
+    story.append(Paragraph("KUIZILA ASSESSMENT PLATFORM", brand_style))
 
     # Main Quiz Title
     story.append(Paragraph(quiz.title, title_style))

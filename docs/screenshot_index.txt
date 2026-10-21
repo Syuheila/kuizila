@@ -1,0 +1,206 @@
+====================================================================================================
+LOOMI ENTERPRISE KNOWLEDGE ASSESSMENT PLATFORM - SCREENSHOT INDEX & VERIFICATION LOG
+====================================================================================================
+Project: Loomi AI-Powered Employee Quiz & Knowledge Assessment Application
+Author: Suhailah Desa (Industrial Training Project Documentation)
+Date: September 2026
+Viewport: 1440 x 900 (Desktop Enterprise Display)
+Resolution: High-Definition PNG (Lossless)
+Total Captures: 18 Authentic Running System Screenshots
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+CATEGORY 1: GENERAL & AUTHENTICATION WORKFLOWS (docs/screenshots/01_general/)
+----------------------------------------------------------------------------------------------------
+
+1. Filename: docs/screenshots/01_general/01_Landing_Page.png
+   Page Name: Loomi Enterprise Landing Page
+   User Type: Public / Unauthenticated
+   Functionality Proved:
+     - Hero branding presentation with value proposition ("Interactive Employee Engagement & AI Assessment").
+     - Dual entry points for Trainers/Administrators and Employee Participants.
+     - Direct "Join Quiz" rapid access button and "Trainer Portal" authentication shortcut.
+     - Live system capability highlights (Timebomb game mode, AI question authoring, real-time analytics).
+     - Full navigation bar with responsive UI elements and dark enterprise theme.
+
+2. Filename: docs/screenshots/01_general/02_Login_Page.png
+   Page Name: Trainer & Administrator Authentication Portal
+   User Type: Public / Corporate Trainer
+   Functionality Proved:
+     - Secure credentials input form with email and masked password validation.
+     - Role-based access control (RBAC) entry gate protecting admin routes.
+     - Organization contextual badge ("Loomi Demo Company") and security safeguards.
+     - Enterprise authentication feedback, remember me toggle, and self-service password recovery link.
+
+----------------------------------------------------------------------------------------------------
+CATEGORY 2: TRAINER DASHBOARD & MANAGEMENT (docs/screenshots/02_host/)
+----------------------------------------------------------------------------------------------------
+
+3. Filename: docs/screenshots/02_host/03_Trainer_Dashboard.png
+   Page Name: Trainer Operational Dashboard
+   User Type: Authenticated Trainer / Administrator
+   Functionality Proved:
+     - Executive KPI metric overview cards: Total Quizzes Created, Active Live Sessions, Total Participants Evaluated, Average Assessment Accuracy.
+     - Quick Launch Action Panel: "Create New Quiz", "Launch Live Session", "View Analytics".
+     - Recent session history feed showing completion status, participant counts, and average scores.
+     - Organization context header and top navigation bar with user profile menu and audio toggle.
+
+4. Filename: docs/screenshots/02_host/04_Quiz_Library.png
+   Page Name: Corporate Quiz Library & Content Catalog
+   User Type: Authenticated Trainer / Administrator
+   Functionality Proved:
+     - Comprehensive catalog grid displaying all corporate quizzes (published and draft).
+     - Metadata badges per quiz: category tag (e.g. Employee Training), question count, usage metrics.
+     - Instant search filtering by title/keyword and category filter pills ("All", "Compliance", "Security").
+     - Action menus on each quiz card: "Launch Session", "Edit Quiz", "Preview Questions", and "Export".
+
+5. Filename: docs/screenshots/02_host/05_Quiz_Detail_Overview.png
+   Page Name: Quiz Detailed Overview & Configuration
+   User Type: Authenticated Trainer / Administrator
+   Functionality Proved:
+     - Full question list breakdown with individual points, allocated time limits, and difficulty ratings.
+     - Configured game mechanics: Timebomb 30-second ring timer, speed bonus calculation, answer reveal mode.
+     - Immediate operational controls: "Launch Live Session", "Generate with AI" modal trigger, "Export Quiz PDF".
+     - Real-time question reordering, editing, and deletion controls.
+
+6. Filename: docs/screenshots/02_host/06_Reports_Analytics.png
+   Page Name: Performance Reports & Enterprise Telemetry
+   User Type: Authenticated Trainer / Corporate Analyst
+   Functionality Proved:
+     - Aggregated organizational performance telemetry across historical training sessions.
+     - Departmental score distributions, average completion times, and overall accuracy percentages.
+     - Granular session log table with participant volume, date/time timestamps, and individual score breakdowns.
+     - Data export capability for compliance records and HR training certification.
+
+----------------------------------------------------------------------------------------------------
+CATEGORY 3: QUIZ CREATION & AUTHORING (docs/screenshots/03_quiz_creation/)
+----------------------------------------------------------------------------------------------------
+
+7. Filename: docs/screenshots/03_quiz_creation/07_Manual_Quiz_Creator.png
+   Page Name: Manual Quiz Creator & Question Studio
+   User Type: Authenticated Trainer / Content Author
+   Functionality Proved:
+     - Structured authoring form for title, corporate category, and participant instructions.
+     - Manual question formulation interface with prompt input, multi-choice answer options (A, B, C, D).
+     - Radio selector designating authoritative correct answer with explanation rationale.
+     - Custom time limit selector (5s to 120s), base point weighting (100 to 500 pts), and draft saving.
+
+----------------------------------------------------------------------------------------------------
+CATEGORY 4: LOCAL AI QUESTION GENERATION (docs/screenshots/04_ai/)
+----------------------------------------------------------------------------------------------------
+
+8. Filename: docs/screenshots/04_ai/08_AI_Quiz_Generator_Modal.png
+   Page Name: Local AI Question Generator Configuration Modal
+   User Type: Authenticated Trainer / Curriculum Developer
+   Functionality Proved:
+     - Zero-data-leakage local AI authoring modal powered by Ollama Gemma 4 (8B parameter model).
+     - Learning objective / topic prompt input field (e.g. "Incident Response & Enterprise Threat Mitigation").
+     - Question volume selector (3, 5, 8, 10, custom) and pedagogical difficulty level (Easy, Medium, Hard).
+     - Privacy assurance notice verifying 100% on-premises processing without external cloud API calls.
+
+9. Filename: docs/screenshots/04_ai/09_AI_Generated_Questions_Preview.png
+   Page Name: AI Generated Questions Interactive Review Studio
+   User Type: Authenticated Trainer / Curriculum Developer
+   Functionality Proved:
+     - Real-time review interface displaying AI-generated questions, distractors, and designated correct keys.
+     - Inline text editing allowing trainers to fine-tune prompts, option wording, and educational explanations.
+     - Correct answer reassignment toggles and individual question discard/accept controls.
+     - "Save to Quiz" batch insertion button appending validated questions directly into the database.
+
+----------------------------------------------------------------------------------------------------
+CATEGORY 5: PARTICIPANT ONBOARDING (docs/screenshots/05_participant/)
+----------------------------------------------------------------------------------------------------
+
+10. Filename: docs/screenshots/05_participant/10_Participant_Join_Screen.png
+    Page Name: Participant Game Join Portal
+    User Type: Employee Participant
+    Functionality Proved:
+      - Clean participant onboarding form requiring zero account creation or password friction.
+      - 6-character alphanumeric game PIN input with automatic uppercase transformation.
+      - Display nickname input for leaderboard representation (e.g., "Ahmad Faizal").
+      - Client-side validation ensuring active room PIN verification prior to session entry.
+
+11. Filename: docs/screenshots/05_participant/11_Participant_Waiting_Lobby.png
+    Page Name: Participant Waiting Lobby
+    User Type: Employee Participant
+    Functionality Proved:
+      - Live connection holding state awaiting trainer's session launch signal.
+      - Dynamic visual pulse animation confirming continuous WebSocket connection to the host server.
+      - Display of participant nickname, assigned avatar, and quiz title.
+      - Real-time automatic screen transition upon host starting the assessment.
+
+----------------------------------------------------------------------------------------------------
+CATEGORY 6: LIVE QUIZ HUD & GAMEPLAY (docs/screenshots/06_live_quiz/)
+----------------------------------------------------------------------------------------------------
+
+12. Filename: docs/screenshots/06_live_quiz/12_Host_Live_Lobby.png
+    Page Name: Host Control Room Live Lobby
+    User Type: Authenticated Trainer / Session Host
+    Functionality Proved:
+      - Prominent 6-digit session PIN display and auto-generated QR code for rapid mobile joining.
+      - Live participant roster showing real-time connected users with active status badges.
+      - Session configuration summary (time limits, question count, scoring mode).
+      - Primary "Start Quiz" trigger button broadcasting commencement across all connected clients.
+
+13. Filename: docs/screenshots/06_live_quiz/13_Active_Quiz_Question.png
+    Page Name: Participant Live Answering HUD (Active Question)
+    User Type: Employee Participant
+    Functionality Proved:
+      - Participant HUD during live answering with Question Counter ("Question 1 of 29").
+      - 30-second circular SVG Timebomb ring timer actively counting down remaining response time.
+      - Clear question prompt with four interactive, accessible answer choices (A, B, C, D).
+      - Speed bonus indicator and current score badge.
+
+14. Filename: docs/screenshots/06_live_quiz/14_Correct_Answer_Feedback.png
+    Page Name: Correct Answer Immediate Feedback State
+    User Type: Employee Participant
+    Functionality Proved:
+      - Instant visual feedback immediately following participant's selection of the correct option.
+      - Selected option button turns vivid GREEN (rgba(16, 185, 129, 0.18), border #10B981, text #34D399).
+      - Checkmark icon (✓ CheckCircle2) prominently displayed on the correct option button.
+      - Timebomb circular countdown timer instantly FREEZES at submission millisecond.
+      - Answer feedback transition card: "✓ Correct! +Points", streak counter, and 3-second auto-advance timer.
+
+15. Filename: docs/screenshots/06_live_quiz/15_Wrong_Answer_Feedback.png
+    Page Name: Incorrect Answer Immediate Feedback State
+    User Type: Employee Participant
+    Functionality Proved:
+      - Instant visual feedback immediately following participant's selection of an incorrect option.
+      - Selected option button turns vivid RED (rgba(239, 68, 68, 0.18), border #EF4444, text #F87171) with ✕ icon.
+      - Authoritative correct answer simultaneously REVEALED in vivid GREEN (#10B981) with ✓ checkmark.
+      - Remaining unselected incorrect choices dimmed to 45% opacity to focus learner attention.
+      - Answer feedback card: "✕ Incorrect Answer", streak reset, educational rationale, and auto-advance countdown.
+
+16. Filename: docs/screenshots/06_live_quiz/16_Host_Live_Monitoring.png
+    Page Name: Host Real-Time Telemetry & Progress Monitoring
+    User Type: Authenticated Trainer / Session Host
+    Functionality Proved:
+      - Live host control room showing real-time participant progression telemetry.
+      - Metric counters: Total Participants, Currently Answering, Completed, Total Questions.
+      - Live ranking table showing current participant scores, completed question indices, and accuracy rates.
+      - Live Feed Active pulsing indicator confirming zero latency socket telemetry.
+
+----------------------------------------------------------------------------------------------------
+CATEGORY 7: RESULTS & POST-QUIZ ANALYTICS (docs/screenshots/07_results/)
+----------------------------------------------------------------------------------------------------
+
+17. Filename: docs/screenshots/07_results/17_Live_Leaderboard_Podium.png
+    Page Name: Concluded Live Leaderboard & Podium
+    User Type: Authenticated Trainer / Session Host
+    Functionality Proved:
+      - Concluded assessment screen displaying final rankings and winner podium graphics (Gold, Silver, Bronze).
+      - Participant final scores, accuracy percentages, and completion ranks.
+      - Integrated AI Quiz Insights summary panel synthesizing cohort strengths and knowledge gaps.
+      - Session closure controls and navigation back to trainer analytics dashboard.
+
+18. Filename: docs/screenshots/07_results/18_Participant_Final_Results.png
+    Page Name: Participant Personal Evaluation & Question Review
+    User Type: Employee Participant
+    Functionality Proved:
+      - Comprehensive personal performance summary: Total Score, Final Rank, and Overall Accuracy Percentage.
+      - Animated achievement trophy and congratulatory feedback.
+      - Granular question-by-question review breakdown showing user choices vs correct answers.
+      - Complete educational reinforcement enabling post-training review and self-remediation.
+====================================================================================================
+END OF SCREENSHOT INDEX
+====================================================================================================

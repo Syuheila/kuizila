@@ -44,12 +44,12 @@ async def ai_health():
     active_fallback = health_info.get("fallback_model", OLLAMA_FALLBACK_MODEL)
     return {
         "status": "ready" if is_ready else "unavailable",
-        "provider": "Loomi AI Engine",
+        "provider": "Kuizila AI Engine",
         "primary_model": active_primary,
         "fallback_model": active_fallback,
         "active": is_ready,
         "message": (
-            f"Loomi AI Engine is ready with {active_primary}."
+            f"Kuizila AI Engine is ready with {active_primary}."
             if is_ready
             else "AI services are currently initializing or unavailable. Please verify local Ollama is running."
         )

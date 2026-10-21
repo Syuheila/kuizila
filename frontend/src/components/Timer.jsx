@@ -4,6 +4,7 @@ import { sound } from '../utils/sound';
 
 export default function Timer({
   duration = 30,
+  initialSeconds = null,
   endsAt = null,
   remainingSeconds = null,
   serverTime = null,
@@ -17,29 +18,46 @@ export default function Timer({
   const pathRef = useRef(null);
   const lastSecRef = useRef(null);
 
-  // Compute initial remaining ms & percent
+  const totalMs = Math.max(1000, (duration || 30) * 1000);
+
+  // Compute fixed target end time ONCE on mount so network polling never causes jumping
+  const targetTimeRef = useRef(null);
+  if (targetTimeRef.current === null) {
+    const secInit = initialSeconds ?? remainingSeconds;
+    if (typeof secInit === 'number' && secInit > 0 && secInit <= (duration || 30)) {
+      targetTimeRef.current = Date.now() + secInit * 1000;
+    } else {
+      targetTimeRef.current = Date.now() + totalMs;
+    }
+  }
+
+  // Track the most recent RAF tick's diffMs for exact millisecond freeze precision
+  const currentDiffMsRef = useRef(null);
+
+  // Freeze diffMs the moment isPaused becomes true so subsequent re-renders never move the visual round
+  const pausedMsRef = useRef(null);
+  if (isPaused) {
+    if (pausedMsRef.current === null) {
+      pausedMsRef.current = currentDiffMsRef.current !== null
+        ? currentDiffMsRef.current
+        : Math.max(0, Math.min(totalMs, targetTimeRef.current - Date.now()));
+    }
+  } else {
+    pausedMsRef.current = null;
+  }
+
+  const getRemainingMs = () => {
+    if (isPaused && pausedMsRef.current !== null) {
+      return pausedMsRef.current;
+    }
+    return Math.max(0, Math.min(totalMs, targetTimeRef.current - Date.now()));
+  };
+
   const getInitial = () => {
-    const totalMs = Math.max(1000, (duration || 30) * 1000);
-    if (endsAt) {
-      const targetTime = new Date(endsAt).getTime();
-      const clockOffset = serverTime ? Date.now() - new Date(serverTime).getTime() : 0;
-      const currentClientTime = Date.now() - clockOffset;
-      const diffMs = Math.max(0, targetTime - currentClientTime);
-      return {
-        sec: Math.max(0, Math.ceil(diffMs / 1000)),
-        percent: Math.max(0, Math.min(100, (diffMs / totalMs) * 100))
-      };
-    }
-    if (typeof remainingSeconds === 'number') {
-      const remSec = Math.max(0, remainingSeconds);
-      return {
-        sec: remSec,
-        percent: Math.max(0, Math.min(100, (remSec / (duration || 1)) * 100))
-      };
-    }
+    const diffMs = getRemainingMs();
     return {
-      sec: duration || 30,
-      percent: 100
+      sec: Math.max(0, Math.min(duration || 30, Math.ceil(diffMs / 1000))),
+      percent: Math.max(0, Math.min(100, (diffMs / totalMs) * 100))
     };
   };
 
@@ -47,39 +65,35 @@ export default function Timer({
   const [timeLeft, setTimeLeft] = useState(initial.sec);
 
   useEffect(() => {
+    if (isPaused) {
+      // Immediately freeze the SVG stroke and cancel all animation frames
+      if (pathRef.current && pausedMsRef.current !== null) {
+        const frozenPercent = Math.max(0, Math.min(100, (pausedMsRef.current / totalMs) * 100));
+        pathRef.current.setAttribute('stroke-dasharray', `${frozenPercent.toFixed(2)}, 100`);
+      }
+      return;
+    }
+
     timeUpFiredRef.current = false;
     lastSecRef.current = null;
-
-    const totalMs = Math.max(1000, (duration || 30) * 1000);
-    let targetTime;
-    let clockOffset = 0;
-
-    if (endsAt) {
-      targetTime = new Date(endsAt).getTime();
-      clockOffset = serverTime ? Date.now() - new Date(serverTime).getTime() : 0;
-    } else if (typeof remainingSeconds === 'number') {
-      targetTime = Date.now() + remainingSeconds * 1000;
-    } else {
-      targetTime = Date.now() + totalMs;
-    }
+    const targetTime = targetTimeRef.current;
 
     let rafId = null;
 
     const tick = () => {
-      if (isPaused) return;
-
-      const now = Date.now() - clockOffset;
-      const diffMs = Math.max(0, targetTime - now);
+      const now = Date.now();
+      const diffMs = Math.max(0, Math.min(totalMs, targetTime - now));
+      currentDiffMsRef.current = diffMs;
       const fraction = Math.max(0, Math.min(1, diffMs / totalMs));
       const percent = fraction * 100;
 
-      // 60 FPS butter-smooth stroke animation without choppy CSS transition fights
+      // 60 FPS butter-smooth SVG ring animation
       if (pathRef.current) {
         pathRef.current.setAttribute('stroke-dasharray', `${percent.toFixed(2)}, 100`);
       }
 
-      // Discrete integer seconds update (only re-renders text once per second)
-      const sec = Math.max(0, Math.ceil(diffMs / 1000));
+      // Discrete integer seconds update (only re-renders text once per second: 30, 29, 28...)
+      const sec = Math.max(0, Math.min(duration || 30, Math.ceil(diffMs / 1000)));
       if (sec !== lastSecRef.current) {
         lastSecRef.current = sec;
         setTimeLeft(sec);
@@ -110,10 +124,14 @@ export default function Timer({
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
     };
-  }, [endsAt, remainingSeconds, duration, serverTime, isPaused, isTimeBomb]);
+  }, [duration, isPaused, isTimeBomb]);
 
-  const isUrgent = timeLeft <= 5;
-  const isDanger = timeLeft <= 3;
+  const displayMs = getRemainingMs();
+  const displaySec = Math.max(0, Math.min(duration || 30, Math.ceil(displayMs / 1000)));
+  const displayPercent = Math.max(0, Math.min(100, (displayMs / totalMs) * 100));
+
+  const isUrgent = displaySec <= 5;
+  const isDanger = displaySec <= 3;
 
   let timerColor = 'var(--color-teal)';
   if (isDanger) timerColor = 'var(--color-danger)';
@@ -121,7 +139,7 @@ export default function Timer({
 
   return (
     <div
-      className={isTimeBomb && isUrgent ? 'timebomb-active' : ''}
+      className={isTimeBomb && isUrgent && !isPaused ? 'timebomb-active' : ''}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -132,7 +150,8 @@ export default function Timer({
         border: `2px solid ${timerColor}`,
         boxShadow: isUrgent ? '0 0 15px rgba(239, 68, 68, 0.4)' : 'var(--shadow-sm)',
         transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
-        userSelect: 'none'
+        userSelect: 'none',
+        opacity: isPaused ? 0.85 : 1
       }}
     >
       <div style={{ position: 'relative', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -149,9 +168,9 @@ export default function Timer({
             fill="none"
             stroke={timerColor}
             strokeWidth="3.5"
-            strokeDasharray={`${initial.percent.toFixed(2)}, 100`}
+            strokeDasharray={`${displayPercent.toFixed(2)}, 100`}
             strokeLinecap="round"
-            style={{ transition: 'stroke 0.3s ease' }}
+            style={{ transition: isPaused ? 'none' : 'stroke 0.3s ease' }}
           />
         </svg>
         <div style={{
@@ -177,10 +196,10 @@ export default function Timer({
           fontVariantNumeric: 'tabular-nums',
           transition: 'color 0.3s ease'
         }}>
-          {timeLeft}s
+          {isPaused ? displaySec : timeLeft}s
         </div>
         <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-          {isTimeBomb && isUrgent ? 'TIME BOMB' : 'REMAINING'}
+          {isPaused ? 'PAUSED' : (isTimeBomb && isUrgent ? 'TIME BOMB' : 'REMAINING')}
         </div>
       </div>
     </div>

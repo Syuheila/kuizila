@@ -106,7 +106,7 @@ export default function LoomiLogo({
           WebkitTextFillColor: 'transparent'
         }}
       >
-        LOOM
+        KUIZ
       </span>
       <span
         style={{
@@ -116,7 +116,7 @@ export default function LoomiLogo({
           position: 'relative'
         }}
       >
-        I
+        ILA
       </span>
       <span
         style={{
@@ -134,7 +134,7 @@ export default function LoomiLogo({
 
   const content = (
     <div
-      className={`loomi-brand ${className}`}
+      className={`loomi-brand kuizila-brand ${className}`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -160,8 +160,8 @@ export default function LoomiLogo({
           display: 'inline-flex',
           cursor: 'pointer'
         }}
-        title="Loomi Homepage"
-        aria-label="Loomi Homepage"
+        title="Kuizila Homepage"
+        aria-label="Kuizila Homepage"
       >
         {content}
       </Link>

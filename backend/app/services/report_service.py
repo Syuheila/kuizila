@@ -137,7 +137,7 @@ def export_session_csv(report_data: Dict[str, Any]) -> str:
     writer = csv.writer(output)
 
     # Header section
-    writer.writerow(["LOOMI WORKSHOP & TRAINING ASSESSMENT REPORT"])
+    writer.writerow(["KUIZILA WORKSHOP & TRAINING ASSESSMENT REPORT"])
     writer.writerow(["Quiz Title", report_data.get("quiz_title", "")])
     writer.writerow(["Session Code", report_data.get("session_code", "")])
     writer.writerow(["Category", report_data.get("category", "")])

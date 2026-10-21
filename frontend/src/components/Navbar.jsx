@@ -84,7 +84,7 @@ export default function Navbar() {
               WebkitTextFillColor: 'transparent',
               lineHeight: 1
             }}>
-              Loomi
+              Kuizila
             </div>
             <div style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
               ENGAGE & MEASURE

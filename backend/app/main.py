@@ -16,8 +16,8 @@ ensure_schema_compatibility(engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Loomi API",
-    description="Backend API for Loomi Interactive Quiz Platform",
+    title="Kuizila API",
+    description="Backend API for Kuizila Interactive Quiz Platform",
     version="1.0.0"
 )
 

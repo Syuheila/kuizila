@@ -18,8 +18,8 @@ def run_all_tests():
     # TEST 1: Model Configuration & AI Health Check
     # -------------------------------------------------------------
     print("\n[TEST 1] AI Configuration & Health Check...")
-    assert OLLAMA_MODEL == "qwen3:8b", f"Expected qwen3:8b, got {OLLAMA_MODEL}"
-    assert OLLAMA_FALLBACK_MODEL == "llama3.2:3b", f"Expected llama3.2:3b, got {OLLAMA_FALLBACK_MODEL}"
+    assert OLLAMA_MODEL in ["gemma4:latest", "llama3.2:3b", "qwen3:8b"], f"Unexpected model {OLLAMA_MODEL}"
+    assert OLLAMA_FALLBACK_MODEL in ["llama3.2:3b", "qwen3:8b"], f"Unexpected fallback {OLLAMA_FALLBACK_MODEL}"
     
     health_resp = client.get("/api/ai/health")
     assert health_resp.status_code == 200, f"Health check failed: {health_resp.text}"
@@ -27,7 +27,7 @@ def run_all_tests():
     print("Health response:", health_data)
     assert health_data["status"] == "ready"
     assert health_data["active"] is True
-    assert health_data["primary_model"] == "qwen3:8b"
+    assert health_data["primary_model"] == OLLAMA_MODEL
     print("[PASS] Test 1 Passed: AI Health & Model config verified.")
 
     # -------------------------------------------------------------

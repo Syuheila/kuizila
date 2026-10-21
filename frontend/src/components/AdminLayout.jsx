@@ -90,7 +90,7 @@ export default function AdminLayout({ children }) {
             </div>
             <div className="sidebar-user-info">
               <div className="sidebar-user-name">{user?.name || 'Trainer'}</div>
-              <div className="sidebar-user-org">{user?.email || 'trainer@loomi.com'}</div>
+              <div className="sidebar-user-org">{user?.email || 'trainer@kuizila.com'}</div>
             </div>
           </div>
 

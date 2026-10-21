@@ -1525,7 +1525,7 @@ export default function QuizCreator() {
                       </h4>
                       <p style={{ fontSize: '0.82rem', color: '#94A3B8', maxWidth: 460 }}>
                         {uploadingMaterial
-                          ? 'Please wait while Loomi parses the document text for question generation and Ask AI chat.'
+                          ? 'Please wait while Kuizila parses the document text for question generation and Ask AI chat.'
                           : 'Drag & drop your presentation or document here, or click to browse. Max 20MB.'}
                       </p>
                     </div>

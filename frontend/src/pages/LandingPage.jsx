@@ -354,7 +354,7 @@ export default function LandingPage() {
                 3. Training Materials Upload
               </h3>
               <p style={{ fontSize: '0.85rem', color: '#94A3B8', lineHeight: 1.5, margin: 0 }}>
-                Upload workshop slides, handouts, and guides (PDF, PPTX, DOCX, TXT). Loomi extracts core concepts and generates targeted assessment questions automatically.
+                Upload workshop slides, handouts, and guides (PDF, PPTX, DOCX, TXT). Kuizila extracts core concepts and generates targeted assessment questions automatically.
               </p>
             </div>
 

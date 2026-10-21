@@ -7,8 +7,8 @@ import {
   Trophy,
   Clock,
   Sparkles,
-  ArrowRight,
-  AlertCircle
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 import Timer from '../components/Timer';
 import LoomiLogo from '../components/LoomiLogo';
@@ -37,15 +37,16 @@ export default function LiveParticipant() {
   // Answering state
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [feedback, setFeedback] = useState(null);
+  const [transitionCountdown, setTransitionCountdown] = useState(null);
+  const [answerFeedback, setAnswerFeedback] = useState(null);
   const [currentScore, setCurrentScore] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
 
   const questionStartClientRef = useRef(Date.now());
-  const advanceTimerRef = useRef(null);
   const countdownIntervalRef = useRef(null);
+  const submitPromiseRef = useRef(null);
   const latestSubmitResultRef = useRef(null);
-  const [advanceCountdown, setAdvanceCountdown] = useState(null);
+  const isTransitioningRef = useRef(false);
 
   useEffect(() => {
     if (!participantId) {
@@ -69,10 +70,27 @@ export default function LiveParticipant() {
     try {
       const data = await api.getParticipantState(participantId);
       setState((prev) => {
+        // Prevent background polling from overriding while user is actively in 3-second transition
+        if (isTransitioningRef.current) {
+          return prev;
+        }
+        // Prevent older polling data from resetting current question if participant is already ahead
+        if (prev?.status === 'answering' && data.status === 'answering') {
+          if (prev?.question?.question_id === data.question?.question_id) {
+            return {
+              ...data,
+              question: prev.question
+            };
+          }
+          if ((prev.current_question_index ?? 0) > (data.current_question_index ?? 0)) {
+            return prev;
+          }
+        }
         if (prev?.question?.question_id !== data.question?.question_id) {
           setSelectedOption(null);
           setHasSubmitted(false);
-          setFeedback(null);
+          setTransitionCountdown(null);
+          setAnswerFeedback(null);
           questionStartClientRef.current = Date.now();
         }
         return data;
@@ -121,9 +139,6 @@ export default function LiveParticipant() {
   useEffect(() => {
     return () => {
       sound.stopMusic();
-      if (advanceTimerRef.current) {
-        clearTimeout(advanceTimerRef.current);
-      }
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
@@ -131,15 +146,15 @@ export default function LiveParticipant() {
   }, []);
 
   const proceedToNext = (res) => {
-    if (advanceTimerRef.current) {
-      clearTimeout(advanceTimerRef.current);
-      advanceTimerRef.current = null;
-    }
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
-    setAdvanceCountdown(null);
+    setTransitionCountdown(null);
+    setHasSubmitted(false);
+    setSelectedOption(null);
+    setAnswerFeedback(null);
+    isTransitioningRef.current = false;
 
     if (!res) {
       loadParticipantState();
@@ -150,29 +165,28 @@ export default function LiveParticipant() {
       sound.playFanfare();
       sound.playLobbyMusic();
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-      setState({
+      setState((prev) => ({
+        ...prev,
         status: 'completed',
-        session_id: state.session_id,
-        session_code: state.session_code,
-        quiz_title: state.quiz_title,
+        session_id: prev?.session_id || state?.session_id,
+        session_code: prev?.session_code || state?.session_code,
+        quiz_title: prev?.quiz_title || state?.quiz_title,
         participant_id: participantId,
         display_name: displayName,
-        final_score: res.total_score,
-        final_percentage: res.result?.final_percentage ?? 100,
+        final_score: res.total_score ?? prev?.final_score ?? currentScore,
+        final_percentage: res.result?.final_percentage ?? (res.total_questions ? Math.round(((res.result?.correct_count ?? 0) / res.total_questions) * 100) : 100),
         final_rank: res.result?.final_rank ?? 1,
         correct_count: res.result?.correct_count ?? 0,
-        total_questions: res.total_questions
-      });
+        total_questions: res.total_questions,
+        review: res.result?.review || res.review || []
+      }));
     } else if (res.next_question) {
-      setSelectedOption(null);
-      setHasSubmitted(false);
-      setFeedback(null);
       questionStartClientRef.current = Date.now();
       setState((prev) => ({
         ...prev,
         status: 'answering',
-        score: res.total_score,
-        streak: res.streak_count,
+        score: res.total_score ?? prev?.score,
+        streak: res.streak_count ?? prev?.streak,
         current_question_index: res.current_question_index,
         total_questions: res.total_questions,
         question: res.next_question,
@@ -183,79 +197,88 @@ export default function LiveParticipant() {
     }
   };
 
-  const submitAnswerInternal = async (selectedOpt, isTimeout = false) => {
+  const submitAnswerInternal = (selectedOpt, isTimeout = false) => {
     if (hasSubmitted || !state?.question) return;
     setHasSubmitted(true);
+    isTransitioningRef.current = true;
     if (selectedOpt) setSelectedOption(selectedOpt);
+
+    const delaySeconds = 3;
+    setTransitionCountdown(delaySeconds);
 
     const responseTime = Math.max(0.1, (Date.now() - questionStartClientRef.current) / 1000);
 
-    try {
-      const res = await api.submitAnswer(
-        state.session_id,
-        participantId,
-        state.question.question_id,
-        selectedOpt ? selectedOpt.id : null,
-        responseTime
-      );
-
+    // Fire API submission concurrently in background
+    latestSubmitResultRef.current = null;
+    submitPromiseRef.current = api.submitAnswer(
+      state.session_id,
+      participantId,
+      state.question.question_id,
+      selectedOpt ? selectedOpt.id : null,
+      responseTime
+    ).then((res) => {
       latestSubmitResultRef.current = res;
-      const isCorrect = res.is_correct === true;
-      if (isCorrect) {
-        sound.playCorrect();
-      } else {
-        sound.playIncorrect();
-      }
-
       if (res.total_score !== undefined) setCurrentScore(res.total_score);
       if (res.streak_count !== undefined) setCurrentStreak(res.streak_count);
 
-      setFeedback({
-        submitted: true,
-        isTimeout: isTimeout,
-        isCorrect: isCorrect,
-        selectedOptId: selectedOpt ? selectedOpt.id : null,
-        correctOptId: res.correct_option_id,
-        correctAnswer: res.correct_answer,
-        explanation: res.explanation,
-        pointsEarned: res.points_earned || 0
-      });
+      // Trigger authoritative feedback state and audio cue
+      if (res && res.is_correct !== undefined && res.is_correct !== null) {
+        setAnswerFeedback({
+          isCorrect: Boolean(res.is_correct),
+          correctOptionId: res.correct_option_id != null ? String(res.correct_option_id) : null,
+          correctAnswer: res.correct_answer != null ? String(res.correct_answer) : null,
+          selectedOptionId: selectedOpt ? String(selectedOpt.id) : null,
+          pointsEarned: res.points_earned || 0
+        });
 
-      // Allow comfortable reading time for explanation (6 seconds if explanation exists, 4.5 seconds otherwise)
-      const delaySeconds = res.explanation ? 6 : 4.5;
-      setAdvanceCountdown(Math.ceil(delaySeconds));
-
-      let remaining = Math.ceil(delaySeconds);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = setInterval(() => {
-        remaining -= 1;
-        if (remaining <= 0) {
-          clearInterval(countdownIntervalRef.current);
-          countdownIntervalRef.current = null;
-          setAdvanceCountdown(null);
+        if (res.is_correct) {
+          sound.playCorrect();
         } else {
-          setAdvanceCountdown(remaining);
+          sound.playIncorrect();
         }
-      }, 1000);
+      }
 
-      advanceTimerRef.current = setTimeout(() => {
-        proceedToNext(res);
-      }, delaySeconds * 1000);
-    } catch (err) {
+      return res;
+    }).catch((err) => {
       console.error('Submit answer error:', err);
-      setHasSubmitted(false);
+      return null;
+    });
+
+    // Start 3-second visual countdown immediately on click
+    let remaining = delaySeconds;
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    countdownIntervalRef.current = setInterval(async () => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+        let result = latestSubmitResultRef.current;
+        if (!result && submitPromiseRef.current) {
+          result = await submitPromiseRef.current;
+        }
+        proceedToNext(result);
+      } else {
+        setTransitionCountdown(remaining);
+      }
+    }, 1000);
+  };
+
+  const handleSkipTransition = async () => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
+    let result = latestSubmitResultRef.current;
+    if (!result && submitPromiseRef.current) {
+      result = await submitPromiseRef.current;
+    }
+    proceedToNext(result);
   };
 
   const handleSelectOption = (opt) => {
     if (hasSubmitted || state?.status !== 'answering') return;
     setSelectedOption(opt);
     submitAnswerInternal(opt, false);
-  };
-
-  const handleSubmitAnswer = () => {
-    if (!selectedOption || hasSubmitted) return;
-    submitAnswerInternal(selectedOption, false);
   };
 
   const handleTimeUp = () => {
@@ -292,6 +315,10 @@ export default function LiveParticipant() {
   const questionEndsAt = (currentQ?.question_started_at && currentQ?.time_limit)
     ? new Date(new Date(currentQ.question_started_at).getTime() + currentQ.time_limit * 1000).toISOString()
     : null;
+
+  const isLastQuestion = currentQ
+    ? ((currentQ.question_index ?? state.current_question_index) + 1) >= (currentQ.total_questions || state.total_questions)
+    : false;
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0B1120', color: '#F8FAFC', display: 'flex', flexDirection: 'column' }}>
@@ -340,38 +367,6 @@ export default function LiveParticipant() {
           </div>
         </div>
       </header>
-
-      {/* Feedback Flash Notification */}
-      {feedback && (
-        <div
-          style={{
-            backgroundColor: '#1E293B',
-            color: '#F8FAFC',
-            textAlign: 'center',
-            padding: '10px 16px',
-            fontSize: '0.9rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            borderBottom: '1px solid #334155',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          {feedback.isTimeout ? (
-            <>
-              <Clock size={18} color="#F59E0B" />
-              <span>Time's up! Moving to next question...</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle2 size={18} color="#38BDF8" />
-              <span>Answer submitted</span>
-            </>
-          )}
-        </div>
-      )}
 
       {/* PHASE 1: WAITING ROOM */}
       {status === 'waiting' && (
@@ -428,11 +423,10 @@ export default function LiveParticipant() {
             <Timer
               key={currentQ.question_id || currentQ.question_index}
               duration={currentQ.time_limit || 30}
-              endsAt={questionEndsAt}
-              remainingSeconds={currentQ.remaining_seconds}
-              serverTime={currentQ.server_time}
+              initialSeconds={currentQ.remaining_seconds}
               onTimeUp={handleTimeUp}
               isPaused={hasSubmitted}
+              isTimeBomb={true}
             />
           </div>
 
@@ -440,7 +434,7 @@ export default function LiveParticipant() {
           <div
             className="enterprise-card"
             style={{
-              padding: '22px 20px',
+              padding: '24px 22px',
               backgroundColor: '#0F172A',
               border: '1px solid #1E293B',
               borderRadius: 14
@@ -454,63 +448,59 @@ export default function LiveParticipant() {
           {/* Options Grid */}
           <div className="participant-options-grid">
             {(currentQ.options || []).map((opt, idx) => {
-              const isSelected = selectedOption?.id === opt.id;
-              const isWrongClicked = feedback && !feedback.isCorrect && (String(opt.id) === String(feedback.selectedOptId));
-              const isRightAnswer = feedback && (
-                String(opt.id) === String(feedback.correctOptId) ||
-                (feedback.isCorrect && String(opt.id) === String(feedback.selectedOptId)) ||
-                (feedback.correctAnswer && (
-                  String(opt.text).trim().toLowerCase() === String(feedback.correctAnswer).trim().toLowerCase() ||
-                  String(opt.id).trim().toLowerCase() === String(feedback.correctAnswer).trim().toLowerCase()
-                ))
-              );
+              const isSelected = selectedOption?.id === opt.id || String(selectedOption?.id) === String(opt.id);
+
+              let isUserCorrect = false;
+              let isUserWrong = false;
+              let isRevealedCorrect = false;
+
+              if (answerFeedback) {
+                const isThisOptionCorrect = Boolean(
+                  (answerFeedback.correctOptionId != null && String(opt.id) === String(answerFeedback.correctOptionId)) ||
+                  (answerFeedback.correctAnswer && String(opt.text).trim().toLowerCase() === String(answerFeedback.correctAnswer).trim().toLowerCase())
+                );
+
+                if (answerFeedback.isCorrect) {
+                  if (isSelected) {
+                    isUserCorrect = true;
+                  }
+                } else {
+                  if (isSelected) {
+                    isUserWrong = true;
+                  } else if (isThisOptionCorrect) {
+                    isRevealedCorrect = true;
+                  }
+                }
+              }
 
               let btnBg = '#1E293B';
               let btnBorder = isSelected ? '#38BDF8' : '#334155';
               let btnColor = isSelected ? '#38BDF8' : '#F8FAFC';
               let badgeBg = isSelected ? '#38BDF8' : '#0F172A';
               let badgeColor = isSelected ? '#0F172A' : '#94A3B8';
-              let statusBadge = null;
+              let btnBoxShadow = isSelected ? '0 0 14px rgba(56, 189, 248, 0.25)' : 'none';
+              let rightIcon = isSelected ? <CheckCircle2 size={20} color="#38BDF8" style={{ flexShrink: 0 }} /> : null;
 
-              if (feedback) {
-                if (isRightAnswer) {
-                  btnBg = 'rgba(16, 185, 129, 0.2)';
-                  btnBorder = '#10B981';
-                  btnColor = '#34D399';
-                  badgeBg = '#10B981';
-                  badgeColor = '#FFFFFF';
-                  statusBadge = (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#34D399', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0 }}>
-                      <CheckCircle2 size={22} color="#10B981" />
-                      <span>Correct</span>
-                    </span>
-                  );
-                } else if (isWrongClicked) {
-                  btnBg = 'rgba(239, 68, 68, 0.2)';
-                  btnBorder = '#EF4444';
-                  btnColor = '#F87171';
-                  badgeBg = '#EF4444';
-                  badgeColor = '#FFFFFF';
-                  statusBadge = (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#F87171', fontWeight: 800, fontSize: '0.85rem', flexShrink: 0 }}>
-                      <XCircle size={22} color="#EF4444" />
-                      <span>Wrong</span>
-                    </span>
-                  );
-                } else {
-                  btnBg = '#0F172A';
-                  btnBorder = '#1E293B';
-                  btnColor = '#64748B';
-                  badgeBg = '#1E293B';
-                  badgeColor = '#64748B';
-                }
-              } else if (isSelected) {
-                btnBg = 'rgba(56, 189, 248, 0.15)';
-                btnBorder = '#38BDF8';
-                btnColor = '#38BDF8';
-                badgeBg = '#38BDF8';
-                badgeColor = '#0F172A';
+              if (isUserCorrect || isRevealedCorrect) {
+                btnBg = 'rgba(16, 185, 129, 0.18)';
+                btnBorder = '#10B981';
+                btnColor = '#34D399';
+                badgeBg = '#10B981';
+                badgeColor = '#FFFFFF';
+                btnBoxShadow = '0 0 16px rgba(16, 185, 129, 0.35)';
+                rightIcon = <CheckCircle2 size={22} color="#10B981" style={{ flexShrink: 0 }} />;
+              } else if (isUserWrong) {
+                btnBg = 'rgba(239, 68, 68, 0.18)';
+                btnBorder = '#EF4444';
+                btnColor = '#F87171';
+                badgeBg = '#EF4444';
+                badgeColor = '#FFFFFF';
+                btnBoxShadow = '0 0 16px rgba(239, 68, 68, 0.35)';
+                rightIcon = <XCircle size={22} color="#EF4444" style={{ flexShrink: 0 }} />;
               }
+
+              const isHighlighted = isUserCorrect || isRevealedCorrect || isUserWrong;
+              const optionOpacity = hasSubmitted && !isHighlighted && !isSelected ? 0.45 : 1;
 
               return (
                 <button
@@ -528,10 +518,11 @@ export default function LiveParticipant() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: 12,
-                    padding: '14px 18px',
+                    padding: '16px 20px',
                     borderRadius: 12,
-                    boxShadow: feedback && (isRightAnswer || isWrongClicked) ? (isRightAnswer ? '0 0 16px rgba(16, 185, 129, 0.25)' : '0 0 16px rgba(239, 68, 68, 0.25)') : 'none',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                    boxShadow: btnBoxShadow,
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    opacity: optionOpacity
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
@@ -557,116 +548,114 @@ export default function LiveParticipant() {
                       {opt.text}
                     </span>
                   </div>
-                  {statusBadge}
+                  {rightIcon}
                 </button>
               );
             })}
           </div>
 
-          {/* Feedback & Advance Banner */}
-          {feedback ? (
+          {/* Submission & 3-Second Transition Banner */}
+          {hasSubmitted ? (
             <div
               style={{
-                borderRadius: 12,
-                padding: '18px 20px',
-                backgroundColor: feedback.isCorrect ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                border: `1px solid ${feedback.isCorrect ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                borderRadius: 14,
+                padding: '16px 20px',
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                border: `1.5px solid ${
+                  answerFeedback?.isCorrect === true
+                    ? 'rgba(16, 185, 129, 0.4)'
+                    : answerFeedback?.isCorrect === false
+                    ? 'rgba(239, 68, 68, 0.4)'
+                    : 'rgba(56, 189, 248, 0.35)'
+                }`,
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 12,
                 animation: 'fadeIn 0.2s ease-out'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {feedback.isCorrect ? (
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', flexShrink: 0 }}>
-                      <CheckCircle2 size={26} />
-                    </div>
-                  ) : (
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', flexShrink: 0 }}>
-                      <XCircle size={26} />
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      backgroundColor: answerFeedback?.isCorrect === true
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : answerFeedback?.isCorrect === false
+                        ? 'rgba(239, 68, 68, 0.15)'
+                        : 'rgba(56, 189, 248, 0.15)',
+                      border: `1px solid ${
+                        answerFeedback?.isCorrect === true
+                          ? 'rgba(16, 185, 129, 0.4)'
+                          : answerFeedback?.isCorrect === false
+                          ? 'rgba(239, 68, 68, 0.4)'
+                          : 'rgba(56, 189, 248, 0.3)'
+                      }`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: answerFeedback?.isCorrect === true ? '#10B981' : answerFeedback?.isCorrect === false ? '#EF4444' : '#38BDF8',
+                      flexShrink: 0
+                    }}
+                  >
+                    {answerFeedback?.isCorrect === false ? <XCircle size={24} /> : <CheckCircle2 size={24} />}
+                  </div>
                   <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: feedback.isCorrect ? '#34D399' : '#F87171', margin: 0 }}>
-                      {feedback.isCorrect ? 'Correct!' : 'Wrong Answer!'}
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+                      {answerFeedback?.isCorrect === true
+                        ? (answerFeedback.pointsEarned ? `✓ Correct! +${answerFeedback.pointsEarned} pts` : `✓ Correct Answer!`)
+                        : answerFeedback?.isCorrect === false
+                        ? `✕ Incorrect Answer`
+                        : `✓ Your Answer is Saved!`}
                     </h3>
                     <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0, marginTop: 2 }}>
-                      {feedback.isCorrect
-                        ? `+${feedback.pointsEarned} points awarded!`
-                        : feedback.correctAnswer
-                          ? `The correct answer is: ${feedback.correctAnswer}`
-                          : 'See the correct answer highlighted in green above'}
+                      {isLastQuestion
+                        ? `Calculating final results in `
+                        : `Next question starting in `}
+                      <strong style={{
+                        color: answerFeedback?.isCorrect === true ? '#10B981' : answerFeedback?.isCorrect === false ? '#EF4444' : '#38BDF8',
+                        fontSize: '0.95rem'
+                      }}>
+                        {transitionCountdown !== null ? transitionCountdown : 3}s
+                      </strong>
+                      ...
                     </p>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => proceedToNext(latestSubmitResultRef.current)}
+                  onClick={handleSkipTransition}
                   className="btn-primary"
                   style={{
                     padding: '9px 18px',
-                    fontSize: '0.85rem',
+                    fontSize: '0.88rem',
                     fontWeight: 700,
-                    gap: 6
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer'
                   }}
                 >
-                  <span>Next Question {advanceCountdown ? `(${advanceCountdown}s)` : ''}</span>
+                  <span>{isLastQuestion ? 'View Results' : 'Next Question'}</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
 
-              {feedback.explanation && (
-                <div
-                  style={{
-                    padding: '14px 18px',
-                    borderRadius: 10,
-                    backgroundColor: '#0F172A',
-                    border: '1px solid #1E293B',
-                    fontSize: '0.92rem',
-                    lineHeight: 1.55,
-                    color: '#E2E8F0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#38BDF8', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    <Sparkles size={15} color="#38BDF8" />
-                    <span>Explanation & Key Takeaway</span>
-                  </div>
-                  <p style={{ margin: 0 }}>{feedback.explanation}</p>
-                </div>
-              )}
-
-              {/* Countdown progress indicator */}
+              {/* 3-second progress shrinking bar */}
               <div style={{ width: '100%', height: 4, backgroundColor: '#1E293B', borderRadius: 2, overflow: 'hidden' }}>
                 <div
                   style={{
                     height: '100%',
-                    backgroundColor: feedback.isCorrect ? '#10B981' : '#EF4444',
+                    backgroundColor: answerFeedback?.isCorrect === true ? '#10B981' : answerFeedback?.isCorrect === false ? '#EF4444' : '#38BDF8',
                     width: '100%',
-                    animation: `feedbackShrink ${feedback.explanation ? 6 : 4.5}s linear forwards`
+                    animation: 'feedbackShrink 3s linear forwards'
                   }}
                 />
               </div>
-            </div>
-          ) : hasSubmitted ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '14px',
-                borderRadius: 10,
-                backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                color: '#38BDF8',
-                fontWeight: 700,
-                fontSize: '0.95rem'
-              }}
-            >
-              Checking answer...
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '10px', color: '#64748B', fontSize: '0.85rem' }}>
@@ -676,16 +665,15 @@ export default function LiveParticipant() {
         </div>
       )}
 
-      {/* PHASE 3: COMPLETED FINAL SCORE SCREEN */}
+      {/* PHASE 3: COMPLETED FINAL SCORE & QUESTION REVIEW SCREEN */}
       {status === 'completed' && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 14px' }}>
+        <div style={{ flex: 1, maxWidth: 760, width: '100%', margin: '0 auto', padding: '28px 16px 60px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Main Results Card */}
           <div
             className="enterprise-card"
             style={{
-              maxWidth: 480,
-              width: '100%',
               textAlign: 'center',
-              padding: '36px 20px',
+              padding: '36px 24px',
               backgroundColor: '#0F172A',
               border: '1px solid #1E293B',
               borderRadius: 16
@@ -699,50 +687,236 @@ export default function LiveParticipant() {
               Great job, {displayName}! You finished the quiz.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
-              <div style={{ padding: '20px 16px', backgroundColor: '#1E293B', borderRadius: 12, border: '1px solid #334155' }}>
-                <span style={{ fontSize: '0.8rem', color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 700 }}>
+            {/* Score Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, marginBottom: 24 }}>
+              <div style={{ padding: '18px 14px', backgroundColor: '#1E293B', borderRadius: 12, border: '1px solid #334155' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 700 }}>
                   Total Score
                 </span>
-                <span style={{ fontSize: '2rem', fontWeight: 900, color: '#38BDF8' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 900, color: '#38BDF8' }}>
                   {state.correct_count ?? 0} / {state.total_questions ?? 0}
                 </span>
               </div>
 
-              <div style={{ padding: '20px 16px', backgroundColor: '#1E293B', borderRadius: 12, border: '1px solid #334155' }}>
-                <span style={{ fontSize: '0.8rem', color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 700 }}>
-                  Percentage
+              <div style={{ padding: '18px 14px', backgroundColor: '#1E293B', borderRadius: 12, border: '1px solid #334155' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 700 }}>
+                  Accuracy
                 </span>
-                <span style={{ fontSize: '2rem', fontWeight: 900, color: '#34D399' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 900, color: '#34D399' }}>
                   {Math.round(state.final_percentage ?? (state.total_questions ? ((state.correct_count ?? 0) / state.total_questions) * 100 : 0))}%
                 </span>
               </div>
-            </div>
 
-            <div style={{ marginBottom: 28, padding: '14px', backgroundColor: '#1E293B', borderRadius: 10, display: 'flex', justifyContent: 'space-around', alignItems: 'center', border: '1px solid #334155' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Points</span>
-                <strong style={{ color: '#FBBF24', fontSize: '1.25rem' }}>
+              <div style={{ padding: '18px 14px', backgroundColor: '#1E293B', borderRadius: 12, border: '1px solid #334155' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 700 }}>
+                  Total Points
+                </span>
+                <span style={{ fontSize: '1.8rem', fontWeight: 900, color: '#FBBF24' }}>
                   {state.final_score ?? currentScore} pts
-                </strong>
+                </span>
               </div>
-              <div style={{ width: 1, height: 24, backgroundColor: '#334155' }} />
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Final Rank</span>
-                <strong style={{ color: '#F8FAFC', fontSize: '1.25rem' }}>
+
+              <div style={{ padding: '18px 14px', backgroundColor: '#1E293B', borderRadius: 12, border: '1px solid #334155' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', display: 'block', marginBottom: 6, fontWeight: 700 }}>
+                  Final Rank
+                </span>
+                <span style={{ fontSize: '1.8rem', fontWeight: 900, color: '#F8FAFC' }}>
                   #{state.final_rank || 1}
-                </strong>
+                </span>
               </div>
             </div>
 
-            <Link
-              to="/join"
-              className="btn-primary"
-              style={{ width: '100%', padding: '12px', justifyContent: 'center', fontWeight: 700 }}
-            >
-              Join Another Quiz
-            </Link>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link
+                to="/join"
+                className="btn-primary"
+                style={{ padding: '12px 28px', fontWeight: 700 }}
+              >
+                Join Another Quiz
+              </Link>
+            </div>
           </div>
+
+          {/* Full Question Review & Correct Answers Section */}
+          {state.review && state.review.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ padding: '0 4px' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F8FAFC', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Sparkles size={20} color="#38BDF8" />
+                  <span>Question Review & Correct Answers</span>
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: '4px 0 0' }}>
+                  Review your answers alongside the correct answers and key explanations below.
+                </p>
+              </div>
+
+              {state.review.map((item, idx) => {
+                const isCorrect = item.is_correct === true;
+                return (
+                  <div
+                    key={item.question_id || idx}
+                    className="enterprise-card"
+                    style={{
+                      padding: '20px 22px',
+                      backgroundColor: '#0F172A',
+                      border: `1px solid ${isCorrect ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+                      borderLeft: `4px solid ${isCorrect ? '#10B981' : '#EF4444'}`,
+                      borderRadius: 14,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 16
+                    }}
+                  >
+                    {/* Question Header & Status Badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Question {idx + 1}
+                      </span>
+
+                      {isCorrect ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34D399', fontWeight: 700, fontSize: '0.85rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                          <CheckCircle2 size={16} />
+                          <span>Correct (+{item.points_earned || 0} pts)</span>
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#F87171', fontWeight: 700, fontSize: '0.85rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                          <XCircle size={16} />
+                          <span>{item.selected_answer === null ? 'Timed Out (0 pts)' : 'Incorrect (0 pts)'}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Question Text */}
+                    <h3 style={{ fontSize: '1.08rem', fontWeight: 700, color: '#F8FAFC', margin: 0, lineHeight: 1.45 }}>
+                      {item.question_text}
+                    </h3>
+
+                    {/* Options Review */}
+                    {item.options && item.options.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {item.options.map((opt, optIdx) => {
+                          const isUserChoice = String(opt.id) === String(item.selected_answer);
+                          const isCorrectChoice =
+                            Boolean(opt.is_correct) ||
+                            String(opt.id) === String(item.correct_option_id) ||
+                            (item.correct_answer && (
+                              String(opt.text).trim().toLowerCase() === String(item.correct_answer).trim().toLowerCase() ||
+                              String(opt.id).trim().toLowerCase() === String(item.correct_answer).trim().toLowerCase()
+                            ));
+
+                          let optBg = '#1E293B';
+                          let optBorder = '#334155';
+                          let optColor = '#94A3B8';
+                          let badgeEl = null;
+
+                          if (isCorrectChoice && isUserChoice) {
+                            optBg = 'rgba(16, 185, 129, 0.15)';
+                            optBorder = '#10B981';
+                            optColor = '#34D399';
+                            badgeEl = (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#34D399', fontWeight: 700, fontSize: '0.8rem', backgroundColor: 'rgba(16, 185, 129, 0.25)', padding: '2px 8px', borderRadius: 6 }}>
+                                <CheckCircle2 size={14} /> Your Answer (Correct)
+                              </span>
+                            );
+                          } else if (isCorrectChoice) {
+                            optBg = 'rgba(16, 185, 129, 0.12)';
+                            optBorder = '#10B981';
+                            optColor = '#34D399';
+                            badgeEl = (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#34D399', fontWeight: 700, fontSize: '0.8rem', backgroundColor: 'rgba(16, 185, 129, 0.25)', padding: '2px 8px', borderRadius: 6 }}>
+                                <CheckCircle2 size={14} /> Correct Answer
+                              </span>
+                            );
+                          } else if (isUserChoice) {
+                            optBg = 'rgba(239, 68, 68, 0.12)';
+                            optBorder = '#EF4444';
+                            optColor = '#F87171';
+                            badgeEl = (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#F87171', fontWeight: 700, fontSize: '0.8rem', backgroundColor: 'rgba(239, 68, 68, 0.25)', padding: '2px 8px', borderRadius: 6 }}>
+                                <XCircle size={14} /> Your Answer
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={opt.id || optIdx}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12,
+                                padding: '12px 16px',
+                                borderRadius: 10,
+                                backgroundColor: optBg,
+                                border: `1.5px solid ${optBorder}`,
+                                color: optColor
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                                <span
+                                  style={{
+                                    width: 26,
+                                    height: 26,
+                                    borderRadius: '50%',
+                                    backgroundColor: isCorrectChoice ? '#10B981' : isUserChoice ? '#EF4444' : '#0F172A',
+                                    color: isCorrectChoice || isUserChoice ? '#FFFFFF' : '#94A3B8',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontWeight: 800,
+                                    fontSize: '0.8rem',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  {String.fromCharCode(65 + optIdx)}
+                                </span>
+                                <span style={{ fontWeight: 600, fontSize: '0.92rem', wordBreak: 'break-word' }}>
+                                  {opt.text}
+                                </span>
+                              </div>
+                              {badgeEl}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Timeout Notice if no answer was submitted */}
+                    {item.selected_answer === null && (
+                      <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#F87171', fontSize: '0.85rem', fontWeight: 600 }}>
+                        No answer was submitted before the time limit expired.
+                      </div>
+                    )}
+
+                    {/* Explanation */}
+                    {item.explanation && (
+                      <div
+                        style={{
+                          padding: '12px 16px',
+                          borderRadius: 10,
+                          backgroundColor: '#1E293B',
+                          border: '1px solid #334155',
+                          fontSize: '0.9rem',
+                          lineHeight: 1.5,
+                          color: '#E2E8F0',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, color: '#38BDF8', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Sparkles size={14} color="#38BDF8" />
+                          <span>Explanation & Key Takeaway</span>
+                        </div>
+                        <p style={{ margin: 0 }}>{item.explanation}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from ..database import get_db
 from ..models import QuizSession, Participant, ParticipantAnswer, QuestionBank, QuizQuestion
 from ..schemas import SessionJoinRequest, AnswerSubmitRequest, AnswerSubmitResponse, ParticipantResponse
@@ -32,6 +32,58 @@ def format_participant_question(q: QuestionBank, qq: QuizQuestion, index: int, t
         "remaining_seconds": max(0, remaining_seconds),
         "server_time": datetime.utcnow().isoformat()
     }
+
+def build_participant_review(session, participant, quiz_questions, db) -> List[Dict[str, Any]]:
+    answers_by_qid = {
+        ans.question_id: ans
+        for ans in db.query(ParticipantAnswer).filter(
+            ParticipantAnswer.participant_id == participant.id,
+            ParticipantAnswer.session_id == session.id
+        ).all()
+    }
+
+    review_list = []
+    for idx, qq in enumerate(quiz_questions):
+        q = qq.question
+        user_ans = answers_by_qid.get(q.id)
+        selected_val = user_ans.selected_answer if user_ans else None
+        is_corr = bool(user_ans.is_correct) if user_ans else False
+        pts = user_ans.points_earned if user_ans else 0
+
+        selected_text = "No Answer (Timed Out)" if selected_val is None else str(selected_val)
+        correct_text = str(q.correct_answer or "")
+        correct_opt_id = None
+
+        if q.options:
+            for opt in q.options:
+                if str(opt.get("id")) == str(selected_val):
+                    selected_text = opt.get("text")
+                if opt.get("is_correct"):
+                    correct_text = opt.get("text")
+                    correct_opt_id = str(opt.get("id"))
+            if not correct_opt_id and q.correct_answer:
+                c_clean = str(q.correct_answer).strip().lower()
+                for opt in q.options:
+                    if str(opt.get("id")).strip().lower() == c_clean or str(opt.get("text")).strip().lower() == c_clean:
+                        correct_opt_id = str(opt.get("id"))
+                        correct_text = opt.get("text")
+                        break
+
+        review_list.append({
+            "question_index": idx,
+            "question_id": q.id,
+            "question_text": q.question_text,
+            "question_type": q.question_type,
+            "options": q.options or [],
+            "selected_answer": selected_val,
+            "selected_answer_text": selected_text,
+            "is_correct": is_corr,
+            "correct_answer": correct_text,
+            "correct_option_id": correct_opt_id,
+            "explanation": q.explanation,
+            "points_earned": pts
+        })
+    return review_list
 
 @router.post("/join")
 async def join_session(payload: SessionJoinRequest, db: Session = Depends(get_db)):
@@ -185,7 +237,8 @@ def get_participant_state(participant_id: int, db: Session = Depends(get_db)):
             "final_rank": participant.final_rank or 1,
             "streak_count": participant.streak_count or 0,
             "total_questions": total_q,
-            "correct_count": correct_count
+            "correct_count": correct_count,
+            "review": build_participant_review(session, participant, quiz_questions, db)
         }
 
     # Participant is actively answering
@@ -207,8 +260,8 @@ def get_participant_state(participant_id: int, db: Session = Depends(get_db)):
     elapsed = (now - participant.current_question_started_at).total_seconds()
 
     # If participant's server timer has already completely expired (e.g., closed tab/reconnected late):
-    # Auto-advance past expired questions
-    while elapsed >= (time_limit + 1.0) and curr_idx < total_q:
+    # Auto-advance past expired questions (with 8s buffer)
+    while elapsed >= (time_limit + 8.0) and curr_idx < total_q:
         # Record timeout answer
         existing_ans = db.query(ParticipantAnswer).filter(
             ParticipantAnswer.session_id == session.id,
@@ -307,8 +360,8 @@ async def process_answer_submission(payload: AnswerSubmitRequest, db: Session):
     else:
         elapsed = payload.response_time_seconds
 
-    # Server-authoritative timer check (with 4s network latency tolerance)
-    is_timed_out = elapsed > (time_limit + 4.0) or payload.selected_answer is None
+    # Server-authoritative timer check (with 8s transition & network latency tolerance)
+    is_timed_out = elapsed > (time_limit + 8.0) or payload.selected_answer is None
 
     if is_timed_out:
         is_correct = False
@@ -407,7 +460,8 @@ async def process_answer_submission(payload: AnswerSubmitRequest, db: Session):
             "final_percentage": participant.final_percentage,
             "final_rank": participant.final_rank,
             "total_questions": total_q,
-            "correct_count": correct_count
+            "correct_count": correct_count,
+            "review": build_participant_review(session, participant, quiz_questions, db)
         }
 
     db.commit()
@@ -436,7 +490,7 @@ async def process_answer_submission(payload: AnswerSubmitRequest, db: Session):
         }
     })
 
-    # Identify correct option id for immediate feedback display
+    # Return authoritative answer feedback upon submission
     correct_opt_id = None
     if question.options:
         for opt in question.options:
@@ -444,13 +498,12 @@ async def process_answer_submission(payload: AnswerSubmitRequest, db: Session):
                 correct_opt_id = str(opt.get("id"))
                 break
         if not correct_opt_id and question.correct_answer:
-            c_text = str(question.correct_answer).strip().lower()
+            c_clean = str(question.correct_answer).strip().lower()
             for opt in question.options:
-                if str(opt.get("id")).strip().lower() == c_text or str(opt.get("text")).strip().lower() == c_text:
+                if str(opt.get("id")).strip().lower() == c_clean or str(opt.get("text")).strip().lower() == c_clean:
                     correct_opt_id = str(opt.get("id"))
                     break
 
-    # Return immediate feedback with correct answer, is_correct, and points
     return AnswerSubmitResponse(
         is_correct=is_correct,
         points_earned=points_earned,
