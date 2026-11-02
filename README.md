@@ -6,6 +6,16 @@ Kuizila is an interactive, web-based quiz and corporate learning application des
 
 ---
 
+## 🚀 Quick Start (One-Click Launcher)
+
+On Windows, after installing dependencies once, you can run the entire platform with a single click:
+
+1. Double-click **`start_kuizila.bat`** in the project root folder.
+2. It automatically starts both the **FastAPI Backend** (`http://127.0.0.1:8000`) and the **Vite Frontend** (`http://localhost:5173`) in dedicated windows.
+3. Open your browser at: **`http://localhost:5173`**
+
+---
+
 ## Technology Stack
 
 * **Frontend**: React 18, Vite, React Router 6, Lucide Icons, Recharts, Canvas-Confetti
@@ -23,11 +33,11 @@ Kuizila is an interactive, web-based quiz and corporate learning application des
 Ensure the following tools are installed on your local development machine:
 * **Python**: Version 3.10 or higher (`python --version`)
 * **Node.js**: Version 18.0 or higher (`node --version`) and npm (`npm --version`)
-* **Ollama**: Local AI inference engine from [ollama.com](https://ollama.com)
+* **Ollama**: Local AI inference engine from [ollama.com](https://ollama.com) (optional, for local AI question generation)
 
 ---
 
-### 2. Ollama Local AI Setup
+### 2. Ollama Local AI Setup (Optional)
 Kuizila runs completely private, local AI generation and document chat via Ollama.
 
 1. Install and start the Ollama service:
@@ -157,6 +167,8 @@ kuizila/
 │   │   └── services/       # API and WebSocket client wrappers
 │   ├── package.json        # Frontend Node dependencies and scripts
 │   └── vite.config.js      # Vite build & proxy configuration
+├── docs/                   # Platform documentation and screenshots
+├── start_kuizila.bat       # One-click Windows development launcher
 ├── .gitignore              # Repository git ignore rules
 ├── .env.example            # Root environment variable template
 └── README.md               # Local development instructions
