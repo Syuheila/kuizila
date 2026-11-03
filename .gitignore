@@ -34,7 +34,6 @@ eggs/
 *.db-wal
 *.sqlite
 *.sqlite3
-backend/loomi.db*
 backend/kuizila.db*
 
 # Temporary & Uploaded Files

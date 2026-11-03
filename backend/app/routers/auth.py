@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 # Active tokens cache & revocation set
 ACTIVE_TOKENS: Dict[str, Dict[str, Any]] = {}
 REVOKED_TOKENS = set()
-KUIZILA_SECRET_KEY = os.environ.get("KUIZILA_SECRET_KEY", os.environ.get("LOOMI_SECRET_KEY", "kuizila_enterprise_secret_key_2026"))
+KUIZILA_SECRET_KEY = os.environ.get("KUIZILA_SECRET_KEY", "kuizila_enterprise_secret_key_2026")
 
 def sign_payload(payload_str: str) -> str:
     return hmac.new(KUIZILA_SECRET_KEY.encode(), payload_str.encode(), hashlib.sha256).hexdigest()
@@ -71,7 +71,7 @@ def get_current_user(authorization: Optional[str] = Header(None), db: Session = 
             return user
 
     # Recover signed token across server restarts
-    if token.startswith("kuizila_tok_") or token.startswith("loomi_tok_"):
+    if token.startswith("kuizila_tok_"):
         parts = token.split("_")
         # Format: kuizila_tok_<user_id>_<exp_ts>_<nonce>_<sig>
         if len(parts) == 6:

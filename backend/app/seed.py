@@ -8,7 +8,7 @@ from .routers.auth import hash_password
 
 def seed_organization_and_users(db: Session):
     """Seed default organization and official trainer admin account."""
-    org = db.query(Organization).filter((Organization.slug == "kuizila-demo") | (Organization.slug == "loomi-demo")).first()
+    org = db.query(Organization).filter(Organization.slug == "kuizila-demo").first()
     if not org:
         org = Organization(
             name="Kuizila Platform",

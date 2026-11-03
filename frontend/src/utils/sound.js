@@ -4,7 +4,7 @@
 class SoundEngine {
   constructor() {
     this.ctx = null;
-    this.muted = (localStorage.getItem("kuizila_sound_muted") || localStorage.getItem("loomi_sound_muted")) === "true";
+    this.muted = localStorage.getItem("kuizila_sound_muted") === "true";
     this.musicAudio = null;
     this.currentTrack = null; // 'lobby' | 'gameplay' | null
     this.desiredTrack = null; // remembers what should be playing if blocked by browser autoplay
@@ -70,7 +70,7 @@ class SoundEngine {
     if (this.isAutoplayBlocked) {
       this.muted = false;
       this.isAutoplayBlocked = false;
-      localStorage.setItem("kuizila_sound_muted", "false"); localStorage.setItem("loomi_sound_muted", "false");
+      localStorage.setItem("kuizila_sound_muted", "false");
       if (this.desiredTrack === 'lobby') {
         this.playLobbyMusic();
       } else if (this.desiredTrack === 'gameplay') {
@@ -86,7 +86,7 @@ class SoundEngine {
     }
 
     this.muted = !this.muted;
-    localStorage.setItem("kuizila_sound_muted", this.muted ? "true" : "false"); localStorage.setItem("loomi_sound_muted", this.muted ? "true" : "false");
+    localStorage.setItem("kuizila_sound_muted", this.muted ? "true" : "false");
     if (this.muted) {
       if (this.musicAudio) {
         this.musicAudio.pause();

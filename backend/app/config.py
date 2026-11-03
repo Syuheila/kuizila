@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR.parent / ".env")
 
-DB_PATH = (BASE_DIR / "kuizila.db") if (BASE_DIR / "kuizila.db").exists() else (BASE_DIR / "loomi.db")
+DB_PATH = BASE_DIR / "kuizila.db"
 raw_db_url = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 if raw_db_url.startswith("sqlite:///./"):
     rel_name = raw_db_url.replace("sqlite:///./", "")

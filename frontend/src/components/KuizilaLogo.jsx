@@ -169,4 +169,3 @@ export default function KuizilaLogo({
   return content;
 }
 
-export const LoomiLogo = KuizilaLogo;

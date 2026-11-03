@@ -80,5 +80,3 @@ export class KuizilaSocket {
     }
   }
 }
-
-export const LoomiSocket = KuizilaSocket;

@@ -5,7 +5,7 @@ const BASE_URL = API_HOST ? `${API_HOST.replace(/\/+$/, '')}/api` : '/api';
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
-  const token = localStorage.getItem('kuizila_token') || localStorage.getItem('loomi_token');
+  const token = localStorage.getItem('kuizila_token');
   const isFormData = options.body instanceof FormData;
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),

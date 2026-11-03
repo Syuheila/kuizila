@@ -5,14 +5,14 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('kuizila_token') || localStorage.getItem('loomi_token') || null);
+  const [token, setToken] = useState(() => localStorage.getItem('kuizila_token') || null);
   const [loading, setLoading] = useState(true);
 
   // Initialize auth state and verify with backend
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('kuizila_token') || localStorage.getItem('loomi_token');
-      const storedUser = localStorage.getItem('kuizila_user') || localStorage.getItem('loomi_user');
+      const storedToken = localStorage.getItem('kuizila_token');
+      const storedUser = localStorage.getItem('kuizila_user');
 
       if (storedToken) {
         try {
@@ -32,8 +32,8 @@ export function AuthProvider({ children }) {
           console.warn('Session verification failed, clearing saved token:', err);
           localStorage.removeItem('kuizila_token');
           localStorage.removeItem('kuizila_user');
-          localStorage.removeItem('loomi_token');
-          localStorage.removeItem('loomi_user');
+          
+          
           setUser(null);
           setToken(null);
         }
@@ -70,8 +70,8 @@ export function AuthProvider({ children }) {
     setToken(null);
     localStorage.removeItem('kuizila_token');
     localStorage.removeItem('kuizila_user');
-    localStorage.removeItem('loomi_token');
-    localStorage.removeItem('loomi_user');
+    
+    
   };
 
   const updateUser = (updatedFields) => {
