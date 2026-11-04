@@ -88,10 +88,15 @@ def build_participant_review(session, participant, quiz_questions, db) -> List[D
 @router.post("/join")
 async def join_session(payload: SessionJoinRequest, db: Session = Depends(get_db)):
     code = payload.session_code.strip().upper()
-    display_name = payload.display_name.strip()
+    import re
+    # Sanitize display name against XSS / HTML tags and limit length
+    display_name = re.sub(r'<[^>]*>', '', payload.display_name or "").strip()
 
     if not display_name:
-        raise HTTPException(status_code=400, detail="Display name is required")
+        raise HTTPException(status_code=400, detail="Display name must contain valid characters (HTML tags not allowed)")
+
+    if len(display_name) > 30:
+        display_name = display_name[:30]
 
     session = db.query(QuizSession).filter(QuizSession.session_code == code).first()
     if not session:
@@ -99,6 +104,10 @@ async def join_session(payload: SessionJoinRequest, db: Session = Depends(get_db
 
     if session.session_status == "completed":
         raise HTTPException(status_code=400, detail="This quiz session has already ended.")
+
+    # Room capacity safeguard (prevent participant flooding / DoS)
+    if db.query(Participant).filter(Participant.session_id == session.id).count() >= 200:
+        raise HTTPException(status_code=400, detail="This session is full (maximum 200 participants reached).")
 
     # Check if participant with this display name already exists in this session
     existing = db.query(Participant).filter(

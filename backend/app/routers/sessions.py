@@ -12,6 +12,15 @@ from .auth import require_admin_role, require_authenticated_user, get_optional_u
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 
+def verify_session_host(session: QuizSession, user: User):
+    """Ensures only the creator/host of the session or an admin can manage the live game."""
+    if session.host_id and session.host_id != user.id and user.role not in ["admin", "owner"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Unauthorized: Only the designated session host can manage this live quiz."
+        )
+
+
 def generate_session_code() -> str:
     """Generates a random 6-character uppercase alphanumeric code."""
     chars = string.ascii_uppercase + "23456789"  # avoid 0, 1, O, I confusion
@@ -279,17 +288,27 @@ def get_session_by_code(session_code: str, db: Session = Depends(get_db)):
     return build_session_state(session, include_answers=False)
 
 @router.get("/{session_id}")
-def get_session(session_id: int, db: Session = Depends(get_db)):
+def get_session(
+    session_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     session = db.query(QuizSession).filter(QuizSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    verify_session_host(session, current_user)
     return build_session_state(session, include_answers=True)
 
 @router.post("/{session_id}/start")
-async def start_session(session_id: int, db: Session = Depends(get_db)):
+async def start_session(
+    session_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     session = db.query(QuizSession).filter(QuizSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    verify_session_host(session, current_user)
 
     session.session_status = "active"
     now = datetime.utcnow()
@@ -313,10 +332,15 @@ async def start_session(session_id: int, db: Session = Depends(get_db)):
     return state
 
 @router.post("/{session_id}/review-question")
-async def review_question(session_id: int, db: Session = Depends(get_db)):
+async def review_question(
+    session_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     session = db.query(QuizSession).filter(QuizSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    verify_session_host(session, current_user)
 
     session.session_status = "question_review"
     db.commit()
@@ -330,10 +354,15 @@ async def review_question(session_id: int, db: Session = Depends(get_db)):
     return state
 
 @router.post("/{session_id}/show-leaderboard")
-async def show_leaderboard(session_id: int, db: Session = Depends(get_db)):
+async def show_leaderboard(
+    session_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     session = db.query(QuizSession).filter(QuizSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    verify_session_host(session, current_user)
 
     session.session_status = "leaderboard"
     db.commit()
@@ -362,16 +391,21 @@ async def show_leaderboard(session_id: int, db: Session = Depends(get_db)):
     return {"standings": standings}
 
 @router.post("/{session_id}/next-question")
-async def next_question(session_id: int, db: Session = Depends(get_db)):
+async def next_question(
+    session_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     session = db.query(QuizSession).filter(QuizSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    verify_session_host(session, current_user)
 
     quiz_questions = session.quiz.quiz_questions if session.quiz else []
     next_idx = session.current_question_index + 1
 
     if next_idx >= len(quiz_questions):
-        return await end_session(session_id, db)
+        return await end_session(session_id, current_user, db)
 
     session.current_question_index = next_idx
     session.session_status = "active"
@@ -387,10 +421,15 @@ async def next_question(session_id: int, db: Session = Depends(get_db)):
     return state
 
 @router.post("/{session_id}/end")
-async def end_session(session_id: int, db: Session = Depends(get_db)):
+async def end_session(
+    session_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     session = db.query(QuizSession).filter(QuizSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    verify_session_host(session, current_user)
 
     session.session_status = "completed"
     session.ended_at = datetime.utcnow()

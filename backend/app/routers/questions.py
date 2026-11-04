@@ -4,6 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 from ..database import get_db
 from ..models import QuestionBank, User
+from .auth import require_authenticated_user
 from ..schemas import QuestionCreate, QuestionUpdate, QuestionResponse
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
@@ -48,9 +49,12 @@ def get_question(question_id: int, db: Session = Depends(get_db)):
     return QuestionResponse.from_orm(question)
 
 @router.post("", response_model=QuestionResponse)
-def create_question(payload: QuestionCreate, db: Session = Depends(get_db)):
-    owner = db.query(User).filter(User.role == "owner").first()
-    owner_id = owner.id if owner else None
+def create_question(
+    payload: QuestionCreate,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
+    owner_id = current_user.id
 
     question = QuestionBank(
         owner_id=owner_id,
@@ -72,7 +76,12 @@ def create_question(payload: QuestionCreate, db: Session = Depends(get_db)):
     return QuestionResponse.from_orm(question)
 
 @router.put("/{question_id}", response_model=QuestionResponse)
-def update_question(question_id: int, payload: QuestionUpdate, db: Session = Depends(get_db)):
+def update_question(
+    question_id: int,
+    payload: QuestionUpdate,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     question = db.query(QuestionBank).filter(QuestionBank.id == question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -104,7 +113,11 @@ def update_question(question_id: int, payload: QuestionUpdate, db: Session = Dep
     return QuestionResponse.from_orm(question)
 
 @router.delete("/{question_id}")
-def delete_question(question_id: int, db: Session = Depends(get_db)):
+def delete_question(
+    question_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     question = db.query(QuestionBank).filter(QuestionBank.id == question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -113,7 +126,11 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
     return {"message": "Question deleted successfully", "question_id": question_id}
 
 @router.post("/{question_id}/duplicate", response_model=QuestionResponse)
-def duplicate_question(question_id: int, db: Session = Depends(get_db)):
+def duplicate_question(
+    question_id: int,
+    current_user: User = Depends(require_authenticated_user),
+    db: Session = Depends(get_db)
+):
     orig = db.query(QuestionBank).filter(QuestionBank.id == question_id).first()
     if not orig:
         raise HTTPException(status_code=404, detail="Question not found")
